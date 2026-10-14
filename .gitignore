@@ -1,0 +1,10 @@
+# Tooling / local
+/.playwright-mcp/
+/.opencode/
+/.vscode/
+
+# Old standalone app (kept locally, not part of this repo)
+/flex-explorer/
+
+# Screenshots
+*.png

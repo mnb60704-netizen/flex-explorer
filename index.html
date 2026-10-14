@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FLEX Explorer — Microgravity Fire Safety</title>
+
+<!-- Chart.js (charts) + PapaParse (CSV parsing) — CDN only, no build tools -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+  /* ============================ THEME / RESET ============================ */
+  :root{
+    --bg:#0a0e14;
+    --panel:#111823;
+    --panel-2:#0e141d;
+    --line:#1e2a3a;
+    --text:#e6edf3;
+    --muted:#8ba0b6;
+    --methanol:#35d0ff;   /* Methanol = cyan/blue */
+    --heptane:#ff8a3d;    /* Heptane  = orange   */
+    --accent:#4c8dff;
+    --ok:#3ddc97;
+    --warn:#ffb454;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #16233a 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+
+  /* ============================== HEADER =============================== */
+  header.site{
+    position:sticky;top:0;z-index:30;
+    background:rgba(10,14,20,.86);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  .header-inner{display:flex;align-items:center;gap:18px;padding:14px 0;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:14px;min-width:280px}
+  .flame{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    background:linear-gradient(140deg,var(--methanol),var(--heptane));
+    box-shadow:0 0 22px rgba(76,141,255,.35);
+    display:grid;place-items:center;font-size:20px;
+  }
+  h1{font-size:19px;margin:0;letter-spacing:.2px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .header-badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .badge{
+    font-size:11.5px;color:var(--muted);border:1px solid var(--line);
+    background:var(--panel);padding:5px 10px;border-radius:999px;white-space:nowrap;
+  }
+  .badge b{color:var(--text)}
+
+  /* ============================== LAYOUT =============================== */
+  main{padding:26px 0 60px}
+  section{margin-bottom:26px}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--panel-2));
+    border:1px solid var(--line);border-radius:16px;padding:18px;
+  }
+  h2{font-size:15px;margin:0 0 12px;color:var(--text);letter-spacing:.3px}
+  h2 .tag{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
+
+  /* ============================= FILTERS ============================== */
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12px;color:var(--muted);letter-spacing:.3px}
+  select,input[type=text]{
+    width:100%;background:var(--panel-2);color:var(--text);
+    border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13.5px;outline:none;
+  }
+  select:focus{border-color:var(--accent)}
+  .range-head{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text)}
+  .range-head .muted{color:var(--muted)}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0}
+  .filter-foot{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+  .count{font-size:13px;color:var(--muted)}
+  .count b{color:var(--text);font-size:15px}
+  button.reset{
+    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
+    padding:8px 16px;border-radius:10px;font-size:13px;cursor:pointer;
+  }
+  button.reset:hover{border-color:var(--accent);color:#fff}
+  .footnote{margin-left:auto;font-size:11.5px;color:var(--muted)}
+
+  /* ============================== CHARTS ============================== */
+  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
+  .chart-card{display:flex;flex-direction:column}
+  .chart-box{position:relative;height:320px;margin-top:6px}
+  .chart-note{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+  /* =============================== TABLE ============================== */
+  .table-wrap{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:12px;margin-top:4px}
+  table{border-collapse:collapse;width:100%;font-size:12.6px;white-space:nowrap}
+  thead th{
+    position:sticky;top:0;background:#0c121b;color:var(--muted);
+    text-align:left;font-weight:600;padding:9px 11px;border-bottom:1px solid var(--line);z-index:2;
+  }
+  tbody td{padding:7px 11px;border-bottom:1px solid rgba(30,42,58,.55)}
+  tbody tr:hover{background:rgba(76,141,255,.07)}
+  tbody tr.row-flag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+  .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:rgba(255,180,84,.14);color:var(--warn)}
+  .pill.ok{background:rgba(61,220,151,.12);color:var(--ok)}
+
+  /* ============================== INFO =============================== */
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .info-item{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .info-item .n{
+    width:26px;height:26px;border-radius:8px;background:rgba(76,141,255,.15);color:var(--accent);
+    display:grid;place-items:center;font-size:13px;font-weight:700;margin-bottom:10px;
+  }
+  .info-item h3{font-size:14px;margin:0 0 6px}
+  .info-item p{margin:0;font-size:12.8px;color:var(--muted)}
+
+  /* ============================== FOOTER ============================= */
+  footer.site{border-top:1px solid var(--line);margin-top:30px;padding:22px 0 40px;color:var(--muted);font-size:12.5px}
+  footer.site .row{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+  footer.site b{color:var(--text)}
+
+  /* loading / error */
+  #status{padding:40px 0;text-align:center;color:var(--muted)}
+  .err{color:#ff6b6b}
+</style>
+</head>
+<body>
+
+<!-- ================================ HEADER ================================ -->
+<header class="site">
+  <div class="wrap header-inner">
+    <div class="brand">
+      <div class="flame">🔥</div>
+      <div>
+        <h1>FLEX Explorer — Microgravity Fire Safety</h1>
+        <div class="sub">NASA PSI-69 · Flame Extinguishment Experiment · droplet combustion dataset</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge">Rows <b id="badge-rows">—</b></span>
+      <span class="badge">License <b>CC0-1.0</b></span>
+      <span class="badge">DOI <b>10.60555/mbq8-0451</b></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="status">Loading <code>data/flex_clean.csv</code>…</div>
+
+  <!-- hidden until data loads -->
+  <div id="app" style="display:none">
+
+    <!-- ============================== FILTERS ============================== -->
+    <section class="card">
+      <h2>Filters <span class="tag">narrow the 274 experiments</span></h2>
+      <div class="filters">
+
+        <!-- Fuel -->
+        <div class="field">
+          <label for="f-fuel">Fuel</label>
+          <select id="f-fuel">
+            <option value="All">All</option>
+            <option value="Methanol">Methanol</option>
+            <option value="Heptane">Heptane</option>
+          </select>
+        </div>
+
+        <!-- O2 mole fraction (dual range 0.10 – 0.35) -->
+        <div class="field">
+          <label>O₂ mole fraction <span class="muted" id="o2-label"></span></label>
+          <input type="range" id="f-o2-lo" min="0.10" max="0.35" step="0.01" />
+          <input type="range" id="f-o2-hi" min="0.10" max="0.35" step="0.01" />
+        </div>
+
+        <!-- Pressure (dual range 0.5 – 1.5 atm) -->
+        <div class="field">
+          <label>Pressure <span class="muted" id="p-label"></span></label>
+          <input type="range" id="f-p-lo" min="0.5" max="3.1" step="0.01" />
+          <input type="range" id="f-p-hi" min="0.5" max="3.1" step="0.01" />
+        </div>
+
+        <!-- Test end -->
+        <div class="field">
+          <label for="f-end">Test end</label>
+          <select id="f-end">
+            <option value="All">All</option>
+            <option value="Extinction">Extinction</option>
+            <option value="Disruption">Disruption</option>
+            <option value="Completion">Completion</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="filter-foot">
+        <button class="reset" id="reset">Reset</button>
+        <span class="count">Showing <b id="count">—</b> of <b id="total">—</b> experiments</span>
+        <span class="footnote">test 114 (C11M201) excluded from pressure — <code>missing_pressure</code></span>
+      </div>
+    </section>
+
+    <!-- =============================== CHARTS ============================= -->
+    <section class="charts">
+      <div class="card chart-card">
+        <h2>d² vs burn time <span class="tag">line segment per test: (0, d₀²) → (t_burn, d_ext²)</span></h2>
+        <div class="chart-box"><canvas id="c-d2"></canvas></div>
+        <div class="chart-note">كل اختبار = قطعة خط من (0, d₀²) إلى (زمن الاحتراق, d_ext²) — عائلة قانون d²(t)=d₀²−k·t. يُرسم فقط ما فيه d₀ وزمن احتراق.</div>
+      </div>
+
+      <div class="card chart-card">
+        <h2>Burning-rate constant k <span class="tag">mm²/s</span></h2>
+        <div class="chart-box"><canvas id="c-k"></canvas></div>
+        <div class="chart-note">عمود واحد لكل اختبار (k&gt;0 فقط)، ملوّن حسب الوقود. k معروض مباشرة من عمود burning_rate_mm2_s.</div>
+      </div>
+
+      <div class="card chart-card">
+        <h2>Extinction diameter vs O₂ <span class="tag">mm vs mole fraction</span></h2>
+        <div class="chart-box"><canvas id="c-scatter"></canvas></div>
+        <div class="chart-note">نقط فقط للصفوف ذات extinction_diameter_mm &gt; 0، ملوّنة حسب الوقود.</div>
+      </div>
+    </section>
+
+    <!-- ================================ TABLE ============================== -->
+    <section class="card">
+      <h2>Experiments <span class="tag" id="table-count"></span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead-row"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================== INFO PANEL =========================== -->
+    <section class="card">
+      <h2>ليه ده مهم لسلامة الفضاء؟ <span class="tag">why it matters</span></h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="n">1</div>
+          <h3>النار في الفضاء مختلفة</h3>
+          <p>في الجاذبية الصغرى مفيش «طفو حراري»، فاللهب بيبقى كروي وبيطفي نفسه عند قطر معيّن. فهم انطفاء القطرة
+             أساس لتصميم أنظمة إطفاء آمنة على متن المركبات ومحطة الفضاء.</p>
+        </div>
+        <div class="info-item">
+          <div class="n">2</div>
+          <h3>الوقود + البيئة = الخطر</h3>
+          <p>بيانات FLEX بتوريك إزاي زمن الاحتراق وقطر الانطفاء بيتغيروا مع نوع الوقود (ميثانول/هيبتان) والضغط
+             وتركيز الأكسجين وغاز التخفيف (N₂ / CO₂ / He) — أي إزاي بتتغير قابلية الاشتعال.</p>
+        </div>
+        <div class="info-item">
+          <div class="n">3</div>
+          <h3>قرارات هندسية مبنية على بيانات</h3>
+          <p>الثابت k وعائلة قانون d²(t) بيتحوّلوا لتوقّعات عن سرعة انتشار الحريق ومدى خطورته، وبيستخدموا في
+             تقييم المواد وأنظمة الإنقاذ في بيئات الأكسجين العالي.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ================================ FOOTER ================================ -->
+<footer class="site">
+  <div class="wrap row">
+    <span>Data: <b>NASA PSI-69 · FLEX (Flame Extinguishment Experiment)</b></span>
+    <span>DOI: <b>10.60555/mbq8-0451</b></span>
+    <span>License: <b>CC0-1.0</b></span>
+    <span><a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">Official dataset page ↗</a></span>
+  </div>
+</footer>
+
+<script>
+/* ============================================================================
+   FLEX Explorer — single-file app
+   - Reads data/flex_clean.csv (fetch + PapaParse)
+   - Filters -> KPIs / 3 charts / table
+   MUST be served over HTTP (fetch of a local file is blocked on file://)
+   ========================================================================== */
+
+// ---- column order shown in the table ----
+const COLUMNS = ["test_id","flex_id","test_date","test_gmt","fuel","pressure_atm",
+  "x_o2","x_n2","x_co2","x_he","initial_diameter_mm","extinction_diameter_mm",
+  "burning_rate_mm2_s","burn_time_s","test_end","quality_flag"];
+
+// columns that must be numbers (empty -> null)
+const NUM_COLS = new Set(["test_id","pressure_atm","x_o2","x_n2","x_co2","x_he",
+  "initial_diameter_mm","extinction_diameter_mm","burning_rate_mm2_s","burn_time_s"]);
+
+const FUEL_COLOR = { Methanol:"#35d0ff", Heptane:"#ff8a3d" };
+const colorA = (hex, a) => {                       // hex -> rgba(.., a)
+  const n = parseInt(hex.slice(1),16);
+  return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+};
+
+let DATA = [];                                     // all 274 rows
+const charts = {};                                 // chart instances
+
+// global defaults for the dark theme
+Chart.defaults.color = "#8ba0b6";
+Chart.defaults.borderColor = "#1e2a3a";
+Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+
+// ---- filter state (dual ranges default to full data span) ----
+const state = { fuel:"All", end:"All", o2lo:0.10, o2hi:0.35, plo:0.5, phi:3.1 };
+
+/* ------------------------------- LOAD DATA ------------------------------- */
+Papa.parse("data/flex_clean.csv", {
+  download: true, header: true, skipEmptyLines: true,
+  complete: (res) => {
+    DATA = res.data.map(row => {
+      const o = {};
+      for (const c of COLUMNS) {
+        let v = row[c];
+        if (NUM_COLS.has(c)) {
+          v = (v === "" || v == null) ? null : Number(v);   // "" -> null
+        }
+        o[c] = v;
+      }
+      return o;
+    }).filter(r => r.test_id != null);
+
+    document.getElementById("status").style.display = "none";
+    document.getElementById("app").style.display = "";
+    boot();
+  },
+  error: (err) => {
+    const s = document.getElementById("status");
+    s.className = "err";
+    s.innerHTML = "Failed to load <code>data/flex_clean.csv</code>.<br>" +
+      "شغّل السيرفر: <code>python -m http.server 8000</code> ثم افتح " +
+      "<code>http://localhost:8000/</code><br><br>" + err;
+  }
+});
+
+/* --------------------------------- BOOT ---------------------------------- */
+function boot(){
+  document.getElementById("badge-rows").textContent = DATA.length;
+  document.getElementById("total").textContent = DATA.length;
+  buildTableHeader();
+  wireControls();
+  render();
+}
+
+/* ---------------------------- FILTER CONTROLS ---------------------------- */
+function wireControls(){
+  const $ = (id) => document.getElementById(id);
+
+  ["f-o2-lo","f-o2-hi","f-p-lo","f-p-hi"].forEach(id => {
+    $(id).addEventListener("input", () => { syncRanges(id); render(); });
+  });
+  $("f-fuel").addEventListener("change", e => { state.fuel = e.target.value; render(); });
+  $("f-end").addEventListener("change",  e => { state.end  = e.target.value; render(); });
+  $("reset").addEventListener("click", () => {
+    $("f-fuel").value = "All"; $("f-end").value = "All";
+    $("f-o2-lo").value = 0.10; $("f-o2-hi").value = 0.35;
+    $("f-p-lo").value  = 0.5;  $("f-p-hi").value  = 3.1;
+    state.fuel="All"; state.end="All"; state.o2lo=0.10; state.o2hi=0.35; state.plo=0.5; state.phi=3.1;
+    syncRanges("f-o2-lo"); syncRanges("f-p-lo");   // refresh the range labels too
+    render();
+  });
+
+  // init slider positions
+  $("f-o2-lo").value = 0.10; $("f-o2-hi").value = 0.35;
+  $("f-p-lo").value  = 0.5;  $("f-p-hi").value  = 3.1;
+  syncRanges("f-o2-lo"); syncRanges("f-p-lo");
+}
+
+// keep the two handles of each dual-range in order (lo <= hi)
+function syncRanges(changed){
+  const $ = (id) => document.getElementById(id);
+  const isO2 = changed.startsWith("f-o2");
+  const lo = isO2 ? "f-o2-lo" : "f-p-lo";
+  const hi = isO2 ? "f-o2-hi" : "f-p-hi";
+  let a = Number($(lo).value), b = Number($(hi).value);
+  if (a > b) { if (changed === lo) { b = a; $(hi).value = b; } else { a = b; $(lo).value = a; } }
+  if (isO2) { state.o2lo = a; state.o2hi = b;
+    $("o2-label").textContent = `— ${a.toFixed(2)} – ${b.toFixed(2)}`;
+  } else { state.plo = a; state.phi = b;
+    $("p-label").textContent = `— ${a.toFixed(2)} – ${b.toFixed(2)} atm`;
+  }
+}
+
+/* ------------------------------ APPLY FILTERS ---------------------------- */
+function filtered(){
+  return DATA.filter(r => {
+    if (state.fuel !== "All" && r.fuel !== state.fuel) return false;
+    if (state.end  !== "All" && r.test_end !== state.end) return false;
+    // O2 window (rows always have x_o2)
+    if (r.x_o2 != null && (r.x_o2 < state.o2lo || r.x_o2 > state.o2hi)) return false;
+    // Pressure window — rows with missing/zero pressure (test 114) are excluded here
+    if (r.pressure_atm == null || r.pressure_atm === 0) return false;
+    if (r.pressure_atm < state.plo || r.pressure_atm > state.phi) return false;
+    return true;
+  });
+}
+
+/* --------------------------------- RENDER -------------------------------- */
+function render(){
+  const rows = filtered();
+  document.getElementById("count").textContent = rows.length;
+  renderD2(rows);
+  renderK(rows);
+  renderScatter(rows);
+  renderTable(rows);
+}
+
+/* ---- (a) d² vs burn time : one line segment per test ---- */
+function renderD2(rows){
+  const pts = rows.filter(r => r.initial_diameter_mm != null && r.burn_time_s != null);
+  const datasets = pts.map(r => {
+    const d0sq = r.initial_diameter_mm ** 2;
+    const dExt = (r.extinction_diameter_mm != null && r.extinction_diameter_mm > 0)
+      ? r.extinction_diameter_mm : 0;               // no measured extinction -> burn to baseline
+    const col = FUEL_COLOR[r.fuel] || "#4c8dff";
+    return {
+      label: r.flex_id,
+      data: [{ x:0, y:+d0sq.toFixed(3) }, { x:r.burn_time_s, y:+(dExt**2).toFixed(3) }],
+      borderColor: colorA(col, 0.30),
+      backgroundColor: colorA(col, 0.30),
+      borderWidth: 1.4, pointRadius: 0, tension: 0, parsing: true
+    };
+  });
+
+  const cfg = {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: (${c.parsed.x}, ${c.parsed.y}) mm²` } }
+      },
+      scales:{
+        x:{ type:"linear", title:{ display:true, text:"Burn time (s)" }, min:0 },
+        y:{ type:"linear", title:{ display:true, text:"Droplet diameter² (mm²)" }, min:0 }
+      }
+    }
+  };
+  if (charts.d2) { charts.d2.data = cfg.data; charts.d2.update("none"); }
+  else charts.d2 = new Chart(document.getElementById("c-d2"), cfg);
+}
+
+/* ---- (b) burning-rate constant k per test (bar, colored by fuel) ---- */
+function renderK(rows){
+  const pts = rows.filter(r => r.burning_rate_mm2_s != null && r.burning_rate_mm2_s > 0);
+  const labels = pts.map(r => r.test_id);
+  const values = pts.map(r => r.burning_rate_mm2_s);
+  const colors = pts.map(r => colorA(FUEL_COLOR[r.fuel] || "#4c8dff", 0.85));
+
+  const cfg = {
+    type:"bar",
+    data:{ labels, datasets:[{ label:"k (mm²/s)", data:values, backgroundColor:colors, borderWidth:0 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ title:(items)=> "Test #"+items[0].label,
+          label:(c)=> `k = ${c.parsed.y} mm²/s` } } },
+      scales:{
+        x:{ title:{ display:true, text:"Test #" }, ticks:{ maxRotation:0, autoSkip:true } },
+        y:{ title:{ display:true, text:"k — burning rate constant (mm²/s)" }, beginAtZero:true }
+      }
+    }
+  };
+  if (charts.k) { charts.k.data = cfg.data; charts.k.update("none"); }
+  else charts.k = new Chart(document.getElementById("c-k"), cfg);
+}
+
+/* ---- (c) extinction diameter vs O2 (scatter, only extinction > 0) ---- */
+function renderScatter(rows){
+  const byFuel = { Methanol:[], Heptane:[] };
+  rows.forEach(r => {
+    if (r.extinction_diameter_mm != null && r.extinction_diameter_mm > 0) {
+      (byFuel[r.fuel] ||= []).push({ x:r.x_o2, y:r.extinction_diameter_mm });
+    }
+  });
+  const datasets = Object.keys(byFuel).filter(f => byFuel[f].length).map(f => ({
+    label: f, data: byFuel[f],
+    backgroundColor: colorA(FUEL_COLOR[f] || "#4c8dff", 0.75),
+    borderColor: colorA(FUEL_COLOR[f] || "#4c8dff", 1),
+    pointRadius: 4, pointHoverRadius: 6
+  }));
+
+  const cfg = {
+    type:"scatter",
+    data:{ datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{ legend:{ display:true },
+        tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label}: O₂=${c.parsed.x}, d_ext=${c.parsed.y} mm` } } },
+      scales:{
+        x:{ type:"linear", title:{ display:true, text:"O₂ mole fraction" }, min:0.10, max:0.35 },
+        y:{ type:"linear", title:{ display:true, text:"Extinction diameter (mm)" }, beginAtZero:true }
+      }
+    }
+  };
+  if (charts.scatter) { charts.scatter.data = cfg.data; charts.scatter.update("none"); }
+  else charts.scatter = new Chart(document.getElementById("c-scatter"), cfg);
+}
+
+/* --------------------------------- TABLE --------------------------------- */
+function buildTableHeader(){
+  document.getElementById("thead-row").innerHTML =
+    COLUMNS.map(c => `<th>${c}</th>`).join("");
+}
+
+function renderTable(rows){
+  document.getElementById("table-count").textContent = `${rows.length} rows`;
+  const body = document.getElementById("tbody");
+  body.innerHTML = rows.map(r => {
+    const flagged = r.quality_flag && r.quality_flag !== "ok";
+    const cells = COLUMNS.map(c => {
+      let v = r[c];
+      if (c === "quality_flag") {
+        return `<td><span class="pill ${v==="ok"?"ok":""}">${v ?? ""}</span></td>`;
+      }
+      if (v == null || v === "") v = "—";
+      return `<td>${v}</td>`;
+    }).join("");
+    return `<tr class="${flagged?"row-flag":""}">${cells}</tr>`;
+  }).join("");
+}
+</script>
+</body>
+</html>

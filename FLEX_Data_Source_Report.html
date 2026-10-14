@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>FLEX Data Source Report</title>
+<style>
+@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", "Tahoma", "Arial", sans-serif;
+  direction: rtl; text-align: right;
+  color: #1a1a1a; line-height: 1.65; font-size: 12px;
+  margin: 0; padding: 0;
+}
+h1 { font-size: 24px; color: #0b3d91; border-bottom: 3px solid #0b3d91; padding-bottom: 8px; margin-top: 0; }
+h2 { font-size: 18px; color: #0b3d91; border-bottom: 1px solid #cfd8e3; padding-bottom: 4px; margin-top: 26px; page-break-after: avoid; }
+h3 { font-size: 14px; color: #1c3f7a; margin-top: 18px; page-break-after: avoid; }
+p, li { font-size: 12px; }
+a { color: #0b3d91; text-decoration: none; word-break: break-all; }
+code {
+  direction: ltr; unicode-bidi: embed; text-align: left;
+  font-family: "Consolas", "Courier New", monospace; font-size: 11px;
+  background: #f2f4f7; padding: 1px 4px; border-radius: 3px; color: #b3005e;
+}
+pre {
+  direction: ltr; text-align: left; background: #0d1117; color: #e6edf3;
+  padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 10.5px;
+  line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+}
+pre code { background: none; color: inherit; padding: 0; }
+blockquote {
+  border-right: 4px solid #0b3d91; background: #f4f7fb;
+  margin: 12px 0; padding: 8px 14px; color: #333;
+}
+table {
+  border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 10.5px;
+  page-break-inside: auto;
+}
+th, td {
+  border: 1px solid #c3cdd9; padding: 5px 7px; text-align: right;
+  vertical-align: top;
+}
+th { background: #0b3d91; color: #fff; font-weight: 600; }
+tr:nth-child(even) td { background: #f6f8fb; }
+tr { page-break-inside: avoid; }
+hr { border: none; border-top: 1px solid #cfd8e3; margin: 20px 0; }
+h1 + blockquote { font-size: 11px; }
+</style>
+</head>
+<body>
+<h1>FLEX Data Source Report</h1>
+<p><strong>تاريخ التحقق:</strong> 2026-10-14
+<strong>التحقيق:</strong> PSI-69 — Flame Extinguishment Experiment (FLEX), Version 5
+<strong>DOI:</strong> 10.60555/mbq8-0451
+<strong>الترخيص:</strong> CC0-1.0</p>
+<blockquote>
+<p>منهج التحقق: فُتحت كل الصفحات فعليًا بمتصفح مبرمَج، وتم فحص طلبات الشبكة (Network) على صفحة PSI-69، وتنزيل الملف الرسمي للجدول (24,776 بايت) والتأكد من صفّه الأول. لم يُعدَّل أي مصدر.</p>
+</blockquote>
+<hr />
+<h2>ملخص تنفيذي</h2>
+<ul>
+<li>المصدر الرسمي الوحيد الكامل للجدول هو نظام <strong>NASA PSI</strong> (Physical Sciences Informatics)، وليس NTRS ولا data.nasa.gov.</li>
+<li>يوجد <strong>رابط تنزيل مباشر رسمي</strong> للـCSV (بدون تسجيل دخول) عبر منصة GEODE.</li>
+<li>الجدول القابل للتنزيل يحتوي <strong>274 صفًا</strong> برقم تسلسلي <code>FLEX Test #</code> من 1 إلى 274 (بينما عدّاد واجهة PSI يعرض "275").</li>
+<li>عمود <code>Burning rate</code> قيمته هي <strong>ثابت معدل الاحتراق (burning-rate constant) k بوحدة mm²/s</strong> — رغم أن رأس العمود مكتوب <code>mm</code> (نقص "/s").</li>
+<li>الترخيص <strong>CC0-1.0</strong> = إهداء للملكية العامة، قابل لإعادة النشر بحرية في NASA Space Apps.</li>
+</ul>
+<hr />
+<h2>1) جدول روابط مُتحقق منها</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>اسم المصدر</th>
+<th>الرابط الكامل</th>
+<th>المحتوى</th>
+<th>تنزيل CSV/Excel؟</th>
+<th>تسجيل دخول؟</th>
+<th>تاريخ التحقق</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>صفحة التحقيق PSI-69 (FLEX)</td>
+<td><code>https://psi.nasa.gov/physci/repo/data/investigations/PSI-69</code></td>
+<td>PSI-69 v5 FLEX: DOI، ترخيص، Description، <strong>Experimental Table (274 صفًا)</strong>، Modeling Table (لا يوجد)، Hardware، Representative Images (لا يوجد)، Data files and documents، Publications، Version History</td>
+<td><strong>نعم</strong></td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>2</td>
+<td>نقطة تنزيل الـCSV الرسمية (GEODE API)</td>
+<td><code>https://psi.nasa.gov/geode-py/ws/studies/PSI-69/download?file=PSI-69_Experimental%20table_FLEX.csv&amp;version=1&amp;redirect=false</code></td>
+<td>يُرجع <strong>نصًا</strong> فيه رابط S3 موقّع مؤقتًا للملف (200 OK، بدون تسجيل دخول). مع <code>redirect=true</code> المتوقّع 302 إلى ملف S3</td>
+<td><strong>نعم</strong></td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>3</td>
+<td>ملف الـCSV نفسه على S3 (موقّع مؤقتًا)</td>
+<td><code>https://psi-repo-prod.s3.amazonaws.com/psi-data/PSI-69/Experimental%20table/PSI-69_Experimental%20table_FLEX.csv</code></td>
+<td>الملف الفعلي: <code>content-type: application/vnd.ms-excel</code>، الحجم <strong>24,776 بايت</strong>، آخر تعديل 2025-01-23. الرابط الموقّع <strong>مؤقت</strong> (لا تبني عليه)</td>
+<td><strong>نعم</strong></td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ملف قاموس البيانات (DoD) عبر الطبقة الرسمية</td>
+<td><code>https://psi.nasa.gov/geode-py/ws/studies/PSI-69/download?file=PSI-69_Science%20Documents_FLEX%20DoD.docx&amp;version=1&amp;redirect=false</code></td>
+<td>يُرجع رابط S3 موقّعًا: <code>https://psi-curation-prod.s3.amazonaws.com/legacy/Filestreamdb/7292/FLEX%20DoD.docx</code> (18,758 بايت). محتواه <strong>Description of Data</strong> (وصف بنية بيانات FLEX، وليس قاموس أعمدة)</td>
+<td><strong>نعم</strong> (docx)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>5</td>
+<td>مستودع PSI الرئيسي</td>
+<td><code>https://psi.nasa.gov/physci/repo/</code></td>
+<td>واجهة المستودع (JS). منها البحث في التحقيقات</td>
+<td>لا (بحث فقط)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>6</td>
+<td>مُحلّل الـDOI</td>
+<td><code>https://doi.org/10.60555/mbq8-0451</code></td>
+<td>يحوّل إلى نظام NASA PSI (صفحة التحقيق PSI-69)</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>7</td>
+<td>سجل NTRS للتقرير</td>
+<td><code>https://ntrs.nasa.gov/citations/20150023456</code></td>
+<td>NASA/TP-2015-216046، رقم التقرير GRC-E-DAA-TN5314 / E-18493، Nov 2015. Copyright: <strong>Public Use Permitted</strong></td>
+<td>لا (PDF تقرير)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>8</td>
+<td>PDF تقرير NASA TP</td>
+<td><code>https://ntrs.nasa.gov/api/citations/20150023456/downloads/20150023456.pdf</code></td>
+<td>تقرير NASA/TP—2015-216046 الكامل (رابط التنزيل الرسمي على صفحة NTRS)</td>
+<td>لا (PDF)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>9</td>
+<td>بحث NTRS</td>
+<td><code>https://ntrs.nasa.gov/search</code></td>
+<td>محرك بحث NTRS. بحث "FLEX flame extinguishment" رجّع <strong>5 نتائج</strong> (منها التقرير)</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>10</td>
+<td>صفحة Combustion Science (NASA)</td>
+<td><code>https://www.nasa.gov/glenn/glenn-expertise-space-exploration/physical-sciences-program/combustion-science/</code></td>
+<td>ملخص برنامج الاحتراق، ويشمل FLEX، ورابط ورقة FLEX الرسمية</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>11</td>
+<td>ورقة FLEX الرسمية (PDF)</td>
+<td><code>https://www.nasa.gov/wp-content/uploads/2025/07/flame-extinguishment-experiment-flex.pdf</code></td>
+<td>PDF يوصف FLEX/FLEX-2/FLEX-2J (مربوط رسميًا من الصفحة #10)</td>
+<td>لا (PDF)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14*</td>
+</tr>
+<tr>
+<td>12</td>
+<td>صفحة FLEX على GIPOC (GRC)</td>
+<td><code>https://gipoc.grc.nasa.gov/wp/fcf-cir/flex/</code></td>
+<td>نظرة عامة على FLEX + روابط صور ومراجع لصفحة MDCA</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>13</td>
+<td>دليل قاعدة بيانات PSI (PDF)</td>
+<td><code>https://science.nasa.gov/wp-content/uploads/2024/11/psi-database-guide.pdf</code></td>
+<td>"Searching Investigation Data within PSI" + "Navigating a PSI Investigation Page" — يشرح آلية التنزيل (حدّد الـcheckbox ثم اضغط download)</td>
+<td>لا (دليل PDF)</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14*</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Researcher's Guide to PSI (صفحة)</td>
+<td><code>https://www.nasa.gov/science-research/for-researchers/researchers-guide-to-physical-sciences-informatics-system/</code></td>
+<td>الدليل الرسمي لمنظومة PSI (صفحة حيّة)</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Researcher's Guide to PSI (PDF)</td>
+<td><code>https://www.nasa.gov/wp-content/uploads/2020/05/psi_researchers_guide-tagged.pdf</code></td>
+<td>نسخة PDF من الدليل</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+<tr>
+<td>16</td>
+<td>PSI Tutorial – Portal &amp; Workspaces (PDF)</td>
+<td><code>https://assets.science.nasa.gov/content/dam/science/bps/bps-general/bps-data_osdr_psi/PSI%20Tutorial_Portal%20%20Workspaces.pdf</code></td>
+<td>دليل البوابة/الـWorkspaces. الرفع يحتاج NASA Guest Account — أما عرض/تنزيل بيانات التحقيق المنشورة فعام</td>
+<td>لا (دليل PDF)</td>
+<td><strong>نعم (للبوابة فقط)</strong></td>
+<td>2026-10-14*</td>
+</tr>
+<tr>
+<td>17</td>
+<td>NASA Open Data Portal</td>
+<td><code>https://data.nasa.gov/</code></td>
+<td>فهرس ميتاداتا عام؛ <strong>يوصف</strong> الـdatasets ويوجّه لمكان الاستضافة (لا يستضيف بيانات PSI بنفسه)</td>
+<td>لا</td>
+<td><strong>لا</strong></td>
+<td>2026-10-14</td>
+</tr>
+</tbody>
+</table>
+<p>* روابط تحقّقت من وجودها ومحتواها عبر نتائج بحث تفصيلية وروابط رسمية، لكن لم تُفتح ملفات PDF الثنائية نفسها (تجنّبًا للتنزيل).</p>
+<h3>ملفات إضافية داخل PSI-69 (موجودة ومُتحقق منها بالاسم/الحجم/التاريخ)</h3>
+<table>
+<thead>
+<tr>
+<th>الملف</th>
+<th>المجلد</th>
+<th>الحجم</th>
+<th>التاريخ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PSI-69_Experimental table_FLEX.csv</code></td>
+<td>Experimental table</td>
+<td>24.2 KB</td>
+<td>Fri Jan 24 2025</td>
+</tr>
+<tr>
+<td><code>PSI-69_Science Documents_FLEX DoD.docx</code></td>
+<td>Science Documents</td>
+<td>18.32 KB</td>
+<td>Sat Jun 07 2025</td>
+</tr>
+<tr>
+<td><code>PSI-69_Science Documents_FLEX_Test_Plan.pdf</code></td>
+<td>Science Documents</td>
+<td>181.44 KB</td>
+<td>Sat Jun 07 2025</td>
+</tr>
+<tr>
+<td><code>PSI-69_metadata_PSI-133_FLEX.zip</code></td>
+<td>Investigation Metadata Files</td>
+<td>24.2 KB</td>
+<td>Sat Jun 07 2025</td>
+</tr>
+</tbody>
+</table>
+<p>مجلدات موجودة: <code>PSI-69</code>، <code>Investigation Metadata Files</code>، <code>Experimental table</code>، <code>Engineering Documents</code>، <code>Presentations</code>، <code>Raw Data</code>، <code>Calibration</code>، <code>Science Documents</code>.</p>
+<hr />
+<h2>2) أفضل طريقة للحصول على الـ274 اختبار</h2>
+<h3>الطريقة أ — رابط مباشر (بدون واجهة، بدون تسجيل دخول) ✅ الأنضف والأسرع</h3>
+<p>المنصة اسمها <strong>GEODE</strong>، والروابط مستقرة على الشكل التالي (رجّع <strong>200 OK</strong> فعليًا):</p>
+<pre><code class="language-text">https://psi.nasa.gov/geode-py/ws/studies/PSI-69/download?file=PSI-69_Experimental%20table_FLEX.csv&amp;version=1&amp;redirect=true
+</code></pre>
+<ul>
+<li>مع <code>redirect=false</code> يُرجع <strong>نصًا</strong> فيه رابط S3 موقّع مؤقتًا.</li>
+<li>مع <code>redirect=true</code> (متوقّع) يعمل 302 إلى ملف S3 مباشرة.</li>
+<li>لا يحتاج مفتاح API ولا تسجيل دخول.</li>
+</ul>
+<h3>الطريقة ب — من واجهة الصفحة</h3>
+<ol>
+<li>افتح: <code>https://psi.nasa.gov/physci/repo/data/investigations/PSI-69</code></li>
+<li>قسم <strong>Experimental Table</strong> → من <strong>"Select Experimental Table"</strong> اختر <code>PSI-69_Experimental table_FLEX.csv</code>. لتوسيع العرض اختر <strong>Items per page = 100</strong> (المتاح: 5 / 10 / 25 / 100).</li>
+<li>للتنزيل: انزل لقسم <strong>Data files and documents</strong> → مجلد <strong>Experimental table</strong> → الملف <code>PSI-69_Experimental table_FLEX.csv</code> → اضغط الصف (يصبح <strong>"Selected: 1"</strong>) → يظهر زر <strong>Download</strong> (أيقونة <code>cloud_download</code>).</li>
+</ol>
+<h3>API (غير موثّق كواجهة عامة لكنه شغّال)</h3>
+<ul>
+<li>تنزيل درس/ملف: <code>GET https://psi.nasa.gov/geode-py/ws/studies/{STUDY}/download?file={FILENAME}&amp;version={n}&amp;redirect=...</code></li>
+<li>سرد الملفات: <code>POST https://psi.nasa.gov/geode-py/ws/files/v2</code></li>
+</ul>
+<h3>الاستشهاد جاهز من الصفحة</h3>
+<p>زر <strong>"Cite this Investigation"</strong> + زرّي <strong>"Download Citation (BibTex)"</strong> و**"Download Citation (RIS)"**.</p>
+<hr />
+<h2>3) شرح الأعمدة (15 عمودًا)</h2>
+<p>رأس الملف الحقيقي (نص حرفي من أول سطر في الـCSV):</p>
+<pre><code class="language-text">FLEX Test #,FLEX Identifier,Test Date,Test GMT,Fuel,Ambient pressure; mmHg,O initial ambient composition; mole fraction,N initial ambient composition; mole fraction,CO initial ambient composition; mole fraction,He initial ambient composition; mole fraction,Droplet initial diameter; mm,Visible flame extinction diameter; mm,Burning rate; mm,Burn time; s,Test end
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>العمود (نص حرفي)</th>
+<th>المعنى</th>
+<th>الوحدة</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>FLEX Test #</code></td>
+<td>رقم تسلسلي للاختبار</td>
+<td>عدد صحيح (1–274)</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>FLEX Identifier</code></td>
+<td>كود الاختبار (مثال <code>20CAL08</code>, <code>30CAL02</code>)</td>
+<td>نص</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>Test Date</code></td>
+<td>تاريخ التنفيذ (مثال <code>3/5/2009</code>)</td>
+<td>تاريخ</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>Test GMT</code></td>
+<td>وقت التنفيذ بتوقيت جرينتش (HH:MM:SS)</td>
+<td>وقت</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>Fuel</code></td>
+<td>نوع الوقود: <strong>Methanol</strong> أو <strong>Heptane</strong></td>
+<td>نص</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>Ambient pressure; mmHg</code></td>
+<td>ضغط الوسط المحيط</td>
+<td><strong>mmHg</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>O initial ambient composition; mole fraction</code></td>
+<td>الكسر الجزيئي للأكسجين O₂ في الخليط الابتدائي</td>
+<td>كسر جزيئي (0–1)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>N initial ambient composition; mole fraction</code></td>
+<td>الكسر الجزيئي للنيتروجين N₂ (مخفّف)</td>
+<td>كسر جزيئي (0–1)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>CO initial ambient composition; mole fraction</code></td>
+<td>الكسر الجزيئي لثاني أكسيد الكربون <strong>CO₂</strong> (مُطفِئ)</td>
+<td>كسر جزيئي (0–1)</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>He initial ambient composition; mole fraction</code></td>
+<td>الكسر الجزيئي للهيليوم (مُطفِئ)</td>
+<td>كسر جزيئي (0–1)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>Droplet initial diameter; mm</code></td>
+<td>القطر الابتدائي للقطيرة</td>
+<td><strong>mm</strong></td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>Visible flame extinction diameter; mm</code></td>
+<td>قطر القطيرة عند لحظة انطفاء اللهب المرئي (يكون <strong>فارغًا</strong> لو مافيش انطفاء عند قطر نهائي)</td>
+<td><strong>mm</strong></td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>Burning rate; mm</code></td>
+<td>ثابت معدل الاحتراق (شوف التفصيل تحت)</td>
+<td><strong>mm²/s</strong></td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>Burn time; s</code></td>
+<td>زمن الاحتراق</td>
+<td><strong>s</strong></td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>Test end</code></td>
+<td>طريقة نهاية الاختبار</td>
+<td>نص</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>الأعمدة 7/8/9 مكتوبة في الرأس بالحروف <code>O</code>, <code>N</code>, <code>CO</code> بدون رموز سفلية؛ السياق (FLEX: O₂ + مخفّف N₂/CO₂/He) يدل على O₂/N₂/CO₂.</p>
+</blockquote>
+<h3>إحصاءات الجدول (من الملف الرسمي)</h3>
+<ul>
+<li><strong>عدد الصفوف:</strong> 274 صفًا (<code>FLEX Test #</code> من 1 إلى 274، بدون فجوات). عدّاد واجهة PSI يعرض "275" — فرق بمقدار 1 (تعدد الواجهة/الرأس أو صف وهمي)؛ <strong>الملف القابل للتنزيل = 274 صفًا</strong>.</li>
+<li><strong>Fuel:</strong> Methanol = 157، Heptane = 117.</li>
+<li><strong>Test end:</strong> Extinction = 186، Disruption = 61، Completion = 27.</li>
+</ul>
+<h3>معنى <code>Test end</code></h3>
+<ul>
+<li><strong>Extinction</strong> = انطفاء اللهب عند قطر نهائي محدود.</li>
+<li><strong>Disruption</strong> = انطفاء اضطرابي (القطيرة تتفكّك/تحترق بشكل غير منتظم بدل انطفاء ناعم).</li>
+<li><strong>Completion</strong> = احتراق حتى الاكتمال (استهلاك الوقود بالكامل، بدون انطفاء عند قطر محدود).</li>
+</ul>
+<hr />
+<h2>4) الحسم في وحدة <code>Burning rate</code> = <strong>mm²/s</strong></h2>
+<p>رأس العمود في PSI مكتوب حرفيًا <code>Burning rate; mm</code> (بدون "/s")، لكن الأدلة تجزم أن القيمة هي <strong>ثابت معدل الاحتراق (burning-rate constant) k بوحدة mm²/s</strong>، وليس طولًا:</p>
+<ol>
+<li><strong>تقرير NASA/TP-2015-216046</strong> يقول حرفيًا إنه يبلّغ عن <em>"Average burning-rate constants for each burn also are reported"</em> — وثابت معدل الاحتراق متعارف عليه <code>k = -d(d²)/dt</code> بوحدة <strong>mm²/s</strong>.
+   المصدر: <code>https://ntrs.nasa.gov/citations/20150023456</code></li>
+<li><strong>عرض NTRS لاختبار FLEX-145</strong> يكتب صريحًا: <em>"Burning rate constant, K = 0.44 m2/s"</em> (خطأ مطبعي واضح في <code>m2</code>, والصحيح <strong>mm²/s</strong>).</li>
+<li><strong>تحليل أبعاد على بيانات الجدول نفسه</strong> — العلاقة <code>t_burn ≈ (d₀² − d_ext²)/k</code>:
+   - على <strong>196 صفًا</strong> فيها قيم صحيحة: <strong>الوسيط 5.5%</strong>، المتوسط 10.3%، <strong>152/196 داخل 10%</strong>، <strong>182/196 داخل 20%</strong>.
+   - مثال (الصف 5): d₀=1.92، d_ext=0.81، k=0.48 → <code>(1.92²−0.81²)/0.48 ≈ 6.3 s</code> مقابل <code>Burn time = 6.34 s</code>. ✅
+   - الحالات الشاذة (أعلى خطأ، مثل الاختبارات 130/129/213) هي حالات <strong>انطفاء فوري</strong> يكون فيها <code>d₀ ≈ d_ext</code>، فتضعف صلاحية القانون (العابر/الإشعال يسيطر) — تفسير فيزيائي واضح وليس تناقضًا.
+   - لو كانت الوحدة طولًا (mm) لكانت العلاقة <code>t=(d₀²−d_ext²)/k</code> <strong>بلا معنى أبعاديًا</strong> ولما ظهرت أي علاقة إحصائية — وهي ظهرت بقوة.</li>
+</ol>
+<blockquote>
+<p><strong>النتيجة:</strong> اعرض القيمة كـ <strong>mm²/s</strong> (ثابت معدل الاحتراق k)، مع ملاحظة أن رأس PSI يكتبها <code>mm</code>.</p>
+</blockquote>
+<hr />
+<h2>5) الترخيص والاستشهاد</h2>
+<ul>
+<li><strong>الترخيص:</strong> <code>CC0-1.0</code> — رابط SPDX: <code>https://spdx.org/licenses/CC0-1.0.html</code>
+  → <strong>إهداء للملكية العامة (Public Domain Dedication): إعادة الاستخدام وإعادة النشر مسموحة بدون شرط نسب</strong> (يُستحسن ذكر المصدر).</li>
+<li><strong>الـDOI:</strong> <code>10.60555/mbq8-0451</code> → <code>https://doi.org/10.60555/mbq8-0451</code></li>
+</ul>
+<p><strong>الاستشهاد الصحيح للبيانات (كما يولّده زر Cite this Investigation حرفيًا):</strong></p>
+<blockquote>
+<p>Williams FA, Shaw BD, Hicks MC, Nayagam V, Choi MY, Dryer FL, Dietrich D. "Flame Extinguishment Experiment(FLEX)", NASA PSI Data Repository, Version 5, http://doi.org/10.60555/mbq8-0451</p>
+</blockquote>
+<p><strong>استشهاد التقرير (NTRS، Copyright: Public Use Permitted):</strong></p>
+<blockquote>
+<p>Dietrich, D. L., et al., "Detailed Results from the Flame Extinguishment Experiment (FLEX) March 2009 to December 2011," NASA/TP-2015-216046, 2015. Report No. GRC-E-DAA-TN5314 / E-18493.</p>
+</blockquote>
+<p><strong>للإستخدام في NASA Space Apps:</strong> مسموح. CC0-1.0 يعطيك حرية إعادة النشر والتعديل والدمج. اذكر قسم "Data source" فيه: FLEX + PSI-69 + الـDOI. وراجع NASA Brand &amp; Usage Guidelines لاستخدام الشعار.</p>
+<hr />
+<h2>6) ما لم أستطع التحقق منه</h2>
+<ol>
+<li><strong>شرح الأعمدة</strong> مبني على رأس الجدول + سياق FLEX + تقرير NTRS؛ الملف <code>FLEX DoD.docx</code> تبيّن أنه <strong>"Description of Data"</strong> (وصف بنية بيانات FLEX ككل: Raw/Analyzed Data، Raw Videos، Images) وليس قاموس أعمدة، ولم يُفتح أي قاموس أعمدة رسمي مخصص.</li>
+<li><strong>وحدة Burning rate:</strong> الحسم mm²/s قوي جدًا (4 أدلة)، لكن رأس PSI المكتوب <code>mm</code> يخالفه نصًّا.</li>
+<li><strong>معنى الاختصارات <code>O</code>/<code>N</code>/<code>CO</code>:</strong> استنتاج من السياق (O₂/N₂/CO₂)؛ الرأس لم يكتب رموزًا سفلية.</li>
+<li><strong>سلوك <code>redirect=true</code></strong> لرابط التنزيل: لم يُختبر مباشرةً (اختُبر <code>redirect=false</code> فقط).</li>
+<li><strong>بارامترات/جسم</strong> <code>POST /geode-py/ws/files/v2</code> (سرد الملفات): لم يُفحص.</li>
+<li><strong>تضارب العدد:</strong> الملف = 274 صفًا (رقم تسلسلي 1–274)، واجهة PSI = 275، وملخص تقرير NASA/TP-2015-216046 يذكر <em>"first 284 tests performed"</em>. لم أتأكد من أسباب الفروق.</li>
+<li><strong>علاقة <code>PSI-69_metadata_PSI-133_FLEX.zip</code></strong> بـ"PSI-133": غير واضحة، لم تُتحقق.</li>
+<li><strong>هل زر Download ينتج CSV مباشرة أم zip:</strong> لم يُضغط الزر لأرى الناتج (استُخدمت نقطة التنزيل المباشرة بدلًا منه).</li>
+<li><strong>data.nasa.gov:</strong> نجح بعد محاولة فاشلة (Transport error)؛ لكن <strong>لا يوجد إدخال مباشر ظاهر لـPSI-69/FLEX</strong> فيه.</li>
+<li><strong><code>https://nasa-psi.s3.us-west-2.amazonaws.com/index.html</code></strong> (PSI Data Explorer): ظهر في نتائج البحث فقط ولم يُفتح.</li>
+<li><strong>روابط PDF (#11, #13, #16):</strong> تحقّق وجودها ومحتواها عبر نتائج بحث وروابط رسمية، لكن لم تُفتح ملفات PDF الثنائية مباشرةً.</li>
+</ol>
+<hr />
+<h2>ملحق — أرقام جاهزة للاستشهاد</h2>
+<table>
+<thead>
+<tr>
+<th>المؤشر</th>
+<th>القيمة</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>عدد صفوف الملف</td>
+<td>274</td>
+</tr>
+<tr>
+<td>نطاق <code>FLEX Test #</code></td>
+<td>1 → 274</td>
+</tr>
+<tr>
+<td>Fuel</td>
+<td>Methanol: 157 · Heptane: 117</td>
+</tr>
+<tr>
+<td>Test end</td>
+<td>Extinction: 186 · Disruption: 61 · Completion: 27</td>
+</tr>
+<tr>
+<td>صفوف صالحة لفحص k = (d₀²−d_ext²)/t</td>
+<td>196</td>
+</tr>
+<tr>
+<td>وسيط الخطأ النسبي للعلاقة k</td>
+<td>5.5%</td>
+</tr>
+<tr>
+<td>الترخيص</td>
+<td>CC0-1.0</td>
+</tr>
+<tr>
+<td>DOI</td>
+<td>10.60555/mbq8-0451</td>
+</tr>
+</tbody>
+</table>
+</body>
+</html>
