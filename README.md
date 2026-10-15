@@ -3,9 +3,10 @@
 An interactive web app that explores NASA's **FLEX (Flame Extinguishment Experiment)**
 dataset on droplet combustion in microgravity — visualizing d² burning curves,
 burning-rate constants *k*, and extinction behaviour for methanol & heptane droplets.
+It also ships trained **machine-learning models** (burning rate + test outcome).
 
 > تطبيق تفاعلي يستكشف بيانات NASA FLEX عن احتراق القطيرات في الجاذبية الصغرى،
-> ويعرض منحنيات d²، معدلات الاحتراق k، وسلوك الانطفاء.
+> ويعرض منحنيات d²، معدلات الاحتراق k، وسلوك الانطفاء، مع نماذج تعلّم آلي مدرّبة.
 
 🔗 **Live:** https://mnb60704-netizen.github.io/flex-explorer/
 
@@ -25,11 +26,45 @@ burning-rate constants *k*, and extinction behaviour for methanol & heptane drop
 - **Chart 2 —** Burning-rate constant **k** (mm²/s) per test, colored by fuel
 - **Chart 3 —** Extinction diameter vs O₂ mole fraction (scatter, colored by fuel)
 - **Table —** all 16 columns of the filtered experiments, with `quality_flag` badges
+- **ML Results —** summary of the trained models + figures (see below)
+
+## 🎓 Machine Learning Results
+Trained on all **274 experiments** with **GroupKFold(5) on `campaign_id`** (no leakage —
+a campaign never spans train/test), `random_state=42`. Reproduce with the scripts in
+[`scripts/`](scripts/).
+
+**Regression — burning-rate constant `k` (mm²/s)** · 258 usable rows
+| Model | MAE | RMSE | R² |
+|---|---|---|---|
+| baseline (mean per fuel) | 0.1026 | 0.1341 | 0.047 |
+| **RandomForest ⭐** | **0.0545** | 0.0831 | **0.634** |
+| HistGradientBoosting | 0.0564 | 0.0841 | 0.625 |
+
+→ **+46.8%** MAE improvement over baseline. Top features: **x_o2 (0.35)**, initial
+diameter (0.23), x_he (0.19).
+
+**Classification — `test_end` (Extinction / Disruption / Completion)** · 274 rows
+| Model | Balanced acc | Macro-F1 |
+|---|---|---|
+| baseline (majority class) | 0.333 | 0.270 |
+| **LogisticRegression ⭐** | **0.631** | **0.576** |
+| RandomForest | 0.547 | 0.532 |
+
+→ **+89%** balanced accuracy over baseline.
+
+📈 Full reports: [`reports/regression_report.md`](reports/regression_report.md) ·
+[`reports/classification_report.md`](reports/classification_report.md) — figures in
+[`reports/figures/`](reports/figures/).
+
+⚠️ **Known limitation:** the *Completion* class is weak (only 27 samples; recall 0.56,
+precision 0.23) and is often confused with *Disruption*. Predictions are valid only
+**inside the observed ranges** (no extrapolation).
+Completion class (27 samples) has low precision/recall due to limited sample size; results for this class should be interpreted with caution.
 
 ## ▶️ How to Run
-The app needs a local HTTP server (browsers block `fetch()` of local files on `file://`):
+The app needs a local HTTP server (browsers block `fetch()` of local files on `file://`).
+Run it from the repository root:
 ```bash
-cd flex-explorer
 python -m http.server 8000
 ```
 Then open **http://localhost:8000/** — or use the GitHub Pages link above.
@@ -45,6 +80,8 @@ Note: the original PSI header reads `Burning rate; mm`, but the real unit is **m
 - This is a **research / data-exploration tool — not a certified fire-safety system**.
 - It does **not** predict fires on spacecraft or any real vehicle.
 - `burning_rate` is in **mm²/s**; the original PSI header is missing the `/s`.
+- ML models are valid only inside the observed input ranges (no extrapolation).
+- *Completion* is the weakest predicted class (27 samples): low precision/recall — interpret with caution.
 
 ## 📚 Citation
 **Data**

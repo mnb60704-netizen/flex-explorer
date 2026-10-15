@@ -6,5 +6,10 @@
 # Old standalone app (kept locally, not part of this repo)
 /flex-explorer/
 
-# Screenshots
+# Screenshots (ignore stray captures, but keep ML report figures)
 *.png
+!reports/figures/*.png
+
+# Python
+__pycache__/
+*.pyc

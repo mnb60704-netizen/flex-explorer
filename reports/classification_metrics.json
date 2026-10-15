@@ -1,0 +1,157 @@
+{
+  "task": "classification",
+  "target": "test_end",
+  "classes": [
+    "Completion",
+    "Disruption",
+    "Extinction"
+  ],
+  "features": [
+    "pressure_atm",
+    "x_o2",
+    "x_n2",
+    "x_co2",
+    "x_he",
+    "initial_diameter_mm",
+    "fuel_methanol"
+  ],
+  "n_total_rows": 274,
+  "n_rows_used": 274,
+  "n_rows_dropped": 0,
+  "class_support": {
+    "Extinction": 186,
+    "Disruption": 61,
+    "Completion": 27
+  },
+  "n_campaigns": 81,
+  "cv": "GroupKFold(5) on campaign_id",
+  "random_state": 42,
+  "models": {
+    "baseline_most_frequent": {
+      "oof": {
+        "balanced_accuracy": 0.3333333333333333,
+        "macro_f1": 0.26956521739130435,
+        "confusion_matrix": [
+          [
+            0,
+            0,
+            27
+          ],
+          [
+            0,
+            0,
+            61
+          ],
+          [
+            0,
+            0,
+            186
+          ]
+        ]
+      },
+      "fold_mean": {
+        "balanced_accuracy": 0.3333333333333333,
+        "macro_f1": 0.26861347804513086
+      },
+      "fold_balanced_accuracy": [
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333,
+        0.3333333333333333
+      ],
+      "fold_macro_f1": [
+        0.2847222222222222,
+        0.2765957446808511,
+        0.26811594202898553,
+        0.2807017543859649,
+        0.23293172690763053
+      ]
+    },
+    "logistic_regression": {
+      "oof": {
+        "balanced_accuracy": 0.6312748496778111,
+        "macro_f1": 0.5764396286337775,
+        "confusion_matrix": [
+          [
+            15,
+            6,
+            6
+          ],
+          [
+            15,
+            39,
+            7
+          ],
+          [
+            34,
+            22,
+            130
+          ]
+        ]
+      },
+      "fold_mean": {
+        "balanced_accuracy": 0.5935474263207653,
+        "macro_f1": 0.5525819216779551
+      },
+      "fold_balanced_accuracy": [
+        0.6562137049941928,
+        0.5923076923076923,
+        0.5523648648648649,
+        0.5147435897435898,
+        0.6521072796934866
+      ],
+      "fold_macro_f1": [
+        0.5797720797720798,
+        0.5626179604261795,
+        0.4689814814814815,
+        0.5212002609262884,
+        0.6303378257837461
+      ]
+    },
+    "random_forest": {
+      "oof": {
+        "balanced_accuracy": 0.5474208564284362,
+        "macro_f1": 0.5315437460340778,
+        "confusion_matrix": [
+          [
+            5,
+            12,
+            10
+          ],
+          [
+            8,
+            41,
+            12
+          ],
+          [
+            12,
+            28,
+            146
+          ]
+        ]
+      },
+      "fold_mean": {
+        "balanced_accuracy": 0.530111559331492,
+        "macro_f1": 0.5078005487682693
+      },
+      "fold_balanced_accuracy": [
+        0.554006968641115,
+        0.6264957264957265,
+        0.44876126126126126,
+        0.5576923076923077,
+        0.4636015325670498
+      ],
+      "fold_macro_f1": [
+        0.5283613445378151,
+        0.6135843561472852,
+        0.46369047619047626,
+        0.5,
+        0.43336656696576936
+      ]
+    }
+  },
+  "baseline_balanced_accuracy": 0.3333333333333333,
+  "selected_model": "logistic_regression",
+  "selection_reason": "logistic_regression has the highest OOF balanced accuracy (0.6313); no simpler model is within 5% of it."
+}
