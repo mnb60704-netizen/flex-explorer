@@ -1,0 +1,58 @@
+{
+  "task": "regression",
+  "target": "burning_rate_mm2_s",
+  "model": "random_forest",
+  "method": "Gini importance of the refit model + fold-averaged permutation importance (GroupKFold OOF folds, n_repeats=30, seed=42)",
+  "random_state": 42,
+  "features": [
+    {
+      "rank": 1,
+      "feature": "x_o2",
+      "label": "x_o2",
+      "gini": 0.3507,
+      "permutation": 0.0507
+    },
+    {
+      "rank": 2,
+      "feature": "initial_diameter_mm",
+      "label": "initial_diameter_mm",
+      "gini": 0.2251,
+      "permutation": 0.0159
+    },
+    {
+      "rank": 3,
+      "feature": "x_he",
+      "label": "x_he",
+      "gini": 0.1898,
+      "permutation": 0.0209
+    },
+    {
+      "rank": 4,
+      "feature": "pressure_atm",
+      "label": "pressure_atm",
+      "gini": 0.0775,
+      "permutation": 0.0027
+    },
+    {
+      "rank": 5,
+      "feature": "x_co2",
+      "label": "x_co2",
+      "gini": 0.0727,
+      "permutation": 0.0071
+    },
+    {
+      "rank": 6,
+      "feature": "x_n2",
+      "label": "x_n2",
+      "gini": 0.0502,
+      "permutation": 0.0028
+    },
+    {
+      "rank": 7,
+      "feature": "fuel_methanol",
+      "label": "fuel (methanol)",
+      "gini": 0.0339,
+      "permutation": 0.0029
+    }
+  ]
+}

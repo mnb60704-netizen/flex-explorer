@@ -1,8 +1,11 @@
 """Task 1 add-on — Feature importance + residual analysis for the regression model.
 
 Uses out-of-fold (OOF) predictions from the same GroupKFold(5) scheme to avoid
-leakage. Produces figures and appends two sections to the regression report.
+leakage. Produces figures, writes reports/feature_importance.json (read by the
+web app so the dashboard stays in sync with retraining), and appends two
+sections to the regression report.
 """
+import json
 import os
 import pickle
 import sys
@@ -136,6 +139,33 @@ def main():
     print(f"  mean resid by fuel   : {mr}")
     print(f"  within +/-0.05       : {within_05:.1f}%")
     print(f"  within +/-0.10       : {within_10:.1f}%")
+
+    # ---------- machine-readable importance (consumed by index.html) ----------
+    fi_json = []
+    for r, i in enumerate(order, 1):
+        fi_json.append(
+            {
+                "rank": r,
+                "feature": feats[i],
+                "label": DISPLAY[feats[i]],
+                "gini": round(float(gini[i]), 4),
+                "permutation": round(float(perm[i]), 4),
+            }
+        )
+    with open(os.path.join(tr.REPORTS_DIR, "feature_importance.json"), "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "task": "regression",
+                "target": tr.TARGET,
+                "model": "random_forest",
+                "method": "Gini importance of the refit model + fold-averaged permutation "
+                "importance (GroupKFold OOF folds, n_repeats=30, seed=42)",
+                "random_state": SEED,
+                "features": fi_json,
+            },
+            f,
+            indent=2,
+        )
 
     # ---------- write report sections ----------
     fi = []
