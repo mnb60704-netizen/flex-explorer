@@ -1,474 +1,673 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FLEX Explorer — Microgravity Fire Safety</title>
-<meta name="description" content="Explore NASA PSI-69 FLEX droplet-combustion data: filters, charts, data-source methodology and in-sample machine-learning results. Research tool — not a spacecraft fire predictor." />
+<title>FLEX Explorer — احتراق القطرات في الجاذبية الصغرى</title>
+<meta name="description" content="استكشف بيانات احتراق قطرات الوقود في تجربة FLEX (NASA PSI-69): فلاتر، رسوم، مقارنة، أسئلة محسوبة من البيانات، ونتائج تعلّم آلي. أداة بحث — ليست تنبؤًا بحريق في مركبة فضائية." />
 
-<!-- Chart.js (charts) + PapaParse (CSV parsing) — CDN only, no build tools, no API keys -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-arabic@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-arabic@5.2.5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans-arabic@5.2.5/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5.2.5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5.2.5/500.css">
 
 <style>
-  /* ============================ THEME / RESET ============================ */
+  /* ===================== FLEX Explorer — lab-notebook theme ===================== */
   :root{
-    --bg:#0a0e14;
-    --panel:#111823;
-    --panel-2:#0e141d;
-    --line:#1e2a3a;
-    --text:#e6edf3;
-    --muted:#8ba0b6;
-    --faint:#6f8296;
-    --methanol:#35d0ff;   /* Methanol = cyan/blue */
-    --heptane:#ff8a3d;    /* Heptane  = orange   */
-    --accent:#4c8dff;
-    --ok:#3ddc97;
-    --warn:#ffb454;
-    --danger:#ff6b6b;
+    /* paper + ink */
+    --paper:#f4f2ed;
+    --paper-2:#faf9f6;
+    --panel:#fbfaf7;
+    --panel-2:#f0ede6;
+    --line:#ded8cd;
+    --line-2:#e7e2d9;
+    --line-strong:#c7bfb1;
+    --text:#22252a;
+    --muted:#5f6470;
+    --faint:#676b73;
+    /* single flame / measurement accent */
+    --accent:#bc3f0e;
+    --accent-soft:#f6e6dc;
+    --accent-line:#e4b79e;
+    /* data colours — chosen for light background, serve comparison only */
+    --methanol:#2563a8;
+    --heptane:#b45309;
+    --ok:#2f6f4f;
+    --warn:#9a6a00;
+    --danger:#a4231b;
+    --radius:4px;
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
+  html{scroll-behavior:smooth}
   body{
-    background:
-      radial-gradient(1200px 600px at 80% -10%, #16233a 0%, transparent 60%),
-      var(--bg);
+    background:var(--paper);
     color:var(--text);
-    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.5;
+    font-family:"IBM Plex Sans Arabic","Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    font-size:15px;
+    line-height:1.6;
     -webkit-font-smoothing:antialiased;
+    font-feature-settings:"tnum" 1,"lnum" 1;
   }
-  a{color:var(--accent);text-decoration:none}
-  a:hover{text-decoration:underline}
-  .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
-  code{background:rgba(76,141,255,.10);border:1px solid var(--line);border-radius:6px;padding:1px 5px;font-size:12px}
+  .mono,code,.num,table{font-variant-numeric:tabular-nums}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent-line)}
+  a:hover{color:#8f2f08;border-bottom-color:var(--accent)}
+  .wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+  code{
+    font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:0 4px;font-size:.82em;color:#3d4048;
+    overflow-wrap:anywhere;word-break:break-word;direction:ltr;display:inline-block;
+  }
+  [id]{scroll-margin-top:76px}
+  b,strong{color:var(--text);font-weight:600}
 
-  /* ============================== HEADER =============================== */
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
+  summary:focus-visible,[tabindex]:focus-visible{
+    outline:2px solid var(--accent);outline-offset:2px;border-radius:2px;
+  }
+
+  /* ================================ HEADER ================================= */
   header.site{
     position:sticky;top:0;z-index:30;
-    background:rgba(10,14,20,.86);
-    backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--line);
+    background:rgba(244,242,237,.94);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line-strong);
   }
-  .header-inner{display:flex;align-items:center;gap:18px;padding:14px 0;flex-wrap:wrap}
-  .brand{display:flex;align-items:center;gap:14px;min-width:280px}
-  .flame{
-    width:38px;height:38px;border-radius:11px;flex:none;
-    background:linear-gradient(140deg,var(--methanol),var(--heptane));
-    box-shadow:0 0 22px rgba(76,141,255,.35);
-    display:grid;place-items:center;font-size:20px;
+  .header-inner{display:flex;align-items:center;gap:22px;padding:12px 0;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand svg{flex:none;display:block}
+  .brand .word{display:flex;flex-direction:column;line-height:1.25}
+  h1{font-size:16.5px;margin:0;letter-spacing:.2px;font-weight:600}
+  .sub{color:var(--faint);font-size:11px;letter-spacing:.3px}
+  nav.top{display:flex;gap:2px;flex-wrap:wrap;margin-inline-start:6px}
+  nav.top a{
+    border:0;color:var(--muted);font-size:12.5px;letter-spacing:.2px;
+    padding:5px 11px;border-bottom:2px solid transparent;
   }
-  h1{font-size:19px;margin:0;letter-spacing:.2px}
-  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
-  .header-badges{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  nav.top a:hover{color:var(--text);border-bottom-color:var(--accent-line)}
+  .header-badges{margin-inline-start:auto;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
   .badge{
-    font-size:11.5px;color:var(--muted);border:1px solid var(--line);
-    background:var(--panel);padding:5px 10px;border-radius:999px;white-space:nowrap;
+    font-size:11px;color:var(--faint);white-space:nowrap;
+    display:flex;flex-direction:column;gap:1px;line-height:1.35;
   }
-  .badge b{color:var(--text)}
+  .badge .lab{letter-spacing:.4px;text-transform:uppercase;font-size:9.5px}
+  .badge b{color:var(--text);font-weight:600;font-size:11.5px;font-family:"IBM Plex Mono",ui-monospace,monospace}
 
-  /* ============================== LAYOUT =============================== */
-  main{padding:26px 0 60px}
-  section{margin-bottom:26px}
-  .card{
-    background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border:1px solid var(--line);border-radius:16px;padding:18px;
+  /* =============================== STRUCTURE =============================== */
+  main{padding:26px 0 66px}
+  section{margin-bottom:34px}
+  /* sections are separated by rules + whitespace, not floating cards */
+  .card{border-top:1px solid var(--line-strong);padding-top:18px}
+  .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px}
+  .panel.card{border-top:1px solid var(--line)}
+  h2{font-size:17px;margin:0 0 14px;color:var(--text);letter-spacing:.1px;font-weight:600}
+  h2 .tag{
+    font-size:11.5px;color:var(--faint);font-weight:400;margin-inline-start:10px;
+    overflow-wrap:anywhere;letter-spacing:.2px;
   }
-  h2{font-size:15px;margin:0 0 12px;color:var(--text);letter-spacing:.3px}
-  h2 .tag{font-size:11px;color:var(--muted);font-weight:400;margin-left:8px}
-  .section-note{font-size:12.3px;color:var(--muted);margin:10px 0 0}
-
-  /* ============================== BRIEF ================================ */
-  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-  .info-item{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:16px}
-  .info-item .n{
-    width:26px;height:26px;border-radius:8px;background:rgba(76,141,255,.15);color:var(--accent);
-    display:grid;place-items:center;font-size:13px;font-weight:700;margin-bottom:10px;
+  .eyebrow{
+    font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;margin:0 0 8px;font-family:"IBM Plex Mono",ui-monospace,monospace;
   }
-  .info-item h3{font-size:14px;margin:0 0 6px}
-  .info-item p{margin:0;font-size:12.8px;color:var(--muted)}
-  .info-item.no .n{background:rgba(255,107,107,.14);color:var(--danger)}
+  .section-note{font-size:12.3px;color:var(--muted);margin:12px 0 0;line-height:1.65}
 
-  /* ============================= FILTERS ============================== */
-  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
-  .field{display:flex;flex-direction:column;gap:6px}
-  .field label{font-size:12px;color:var(--muted);letter-spacing:.3px}
+  /* ================================= HERO ================================= */
+  .hero{padding-top:6px}
+  .hero h2.hero-title{
+    font-size:clamp(23px,3.6vw,34px);line-height:1.35;margin:0 0 12px;
+    letter-spacing:.1px;font-weight:600;
+  }
+  .hero .hero-lede{font-size:15.5px;color:var(--muted);max-width:66ch;margin:0 0 20px}
+  .hero .hero-lede b{color:var(--text)}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 18px;border-radius:var(--radius);font-size:14px;font-weight:600;
+    border:1px solid var(--line-strong);cursor:pointer;background:var(--paper-2);
+    color:var(--text);border-bottom-width:1px;text-decoration:none;font-family:inherit;
+  }
+  .btn:hover{border-color:var(--text);text-decoration:none;color:var(--text)}
+  .btn-primary{background:var(--text);color:var(--paper);border-color:var(--text)}
+  .btn-primary:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .hero-note{
+    font-size:12.6px;color:var(--muted);background:var(--accent-soft);
+    border-inline-start:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;
+    padding:11px 14px;margin:0;max-width:82ch;line-height:1.65;
+  }
+  .hero-note b{color:#7a2a09}
+
+  /* =========================== SUMMARY STRIP =============================== */
+  .summary{
+    display:flex;flex-wrap:wrap;align-items:stretch;
+    border-top:1px solid var(--line-strong);border-bottom:1px solid var(--line);
+  }
+  .sum-item{
+    display:flex;flex-direction:column;gap:2px;justify-content:center;
+    padding:13px 26px 13px 0;flex:1 1 200px;min-width:0;
+    border-inline-end:1px solid var(--line);
+  }
+  .sum-item:last-child{border-inline-end:0}
+  .sum-item .v{
+    font-size:24px;font-weight:600;line-height:1.25;letter-spacing:.2px;
+    font-family:"IBM Plex Mono","IBM Plex Sans Arabic",monospace;
+  }
+  .sum-item .v b{font-weight:600}
+  .sum-item .v small{font-size:13px;color:var(--muted);font-weight:400;font-family:"IBM Plex Sans Arabic",sans-serif}
+  .sum-item .l{font-size:11.5px;color:var(--muted);letter-spacing:.2px}
+  @media(max-width:640px){
+    .sum-item{border-inline-end:0;border-bottom:1px solid var(--line-2);padding:11px 0}
+    .sum-item:last-child{border-bottom:0}
+    /* compact the sticky header so it doesn't swallow in-page anchors */
+    .header-inner{gap:6px 12px;padding:8px 0}
+    .brand .sub{display:none}
+    nav.top{order:3;width:100%;margin-inline-start:0;flex-wrap:nowrap;overflow-x:auto;gap:0;
+      -ms-overflow-style:none;scrollbar-width:none}
+    nav.top::-webkit-scrollbar{display:none}
+    nav.top a{flex:none}
+    .header-badges{display:none}
+    [id]{scroll-margin-top:96px}
+  }
+
+  /* ================================ CONTROLS =============================== */
+  .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:18px 20px}
+  .field{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .field label{font-size:11.5px;color:var(--muted);letter-spacing:.2px;font-weight:600}
+  .field .muted{color:var(--faint);font-family:"IBM Plex Mono",monospace;font-size:11px}
   select,input[type=text],input[type=search]{
-    width:100%;background:var(--panel-2);color:var(--text);
-    border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13.5px;outline:none;
+    width:100%;background:var(--panel);color:var(--text);
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    padding:8px 10px;font-size:13.5px;font-family:inherit;
   }
-  select:focus{border-color:var(--accent)}
-  .range-head{display:flex;justify-content:space-between;font-size:12.5px;color:var(--text)}
-  .range-head .muted{color:var(--muted)}
-  input[type=range]{width:100%;accent-color:var(--accent);margin:4px 0}
-  .filter-foot{display:flex;align-items:center;gap:14px;margin-top:16px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
-  .count{font-size:13px;color:var(--muted)}
-  .count b{color:var(--text);font-size:15px}
+  select:hover,input[type=text]:hover,input[type=search]:hover{border-color:var(--faint)}
+  input[type=range]{width:100%;accent-color:var(--accent);margin:5px 0}
+  .filter-foot{
+    display:flex;align-items:center;gap:16px;margin-top:18px;flex-wrap:wrap;
+    border-top:1px solid var(--line);padding-top:15px;
+  }
+  .count{font-size:12.5px;color:var(--muted)}
+  .count b{color:var(--text);font-size:14px;font-family:"IBM Plex Mono",monospace}
   button.reset{
-    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
-    padding:8px 16px;border-radius:10px;font-size:13px;cursor:pointer;
+    background:var(--text);color:var(--paper);border:1px solid var(--text);
+    padding:8px 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;
+    font-family:inherit;font-weight:600;
   }
-  button.reset:hover{border-color:var(--accent);color:#fff}
-  .footnote{margin-left:auto;font-size:11.5px;color:var(--muted)}
+  button.reset:hover{background:var(--accent);border-color:var(--accent)}
+  .footnote{margin-inline-start:auto;font-size:11.2px;color:var(--faint);max-width:60ch;line-height:1.5}
 
-  /* ================================ KPIs =============================== */
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px}
-  .kpi{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
-  .kpi .k{font-size:20px;font-weight:700;letter-spacing:.3px}
-  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:3px}
-  .kpi .s{font-size:11px;color:var(--faint);margin-top:6px}
+  /* ================================= KPIs ================================= */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;
+    border-top:1px solid var(--line)}
+  .kpi{padding:12px 16px 12px 0;border-bottom:1px solid var(--line-2);min-width:0}
+  .kpi .k{font-size:19px;font-weight:600;letter-spacing:.2px;
+    font-family:"IBM Plex Mono","IBM Plex Sans Arabic",monospace}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .kpi .s{font-size:10.8px;color:var(--faint);margin-top:5px}
 
-  /* ============================== CHARTS ============================== */
-  .charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px}
-  .chart-card{display:flex;flex-direction:column}
-  .chart-box{position:relative;height:320px;margin-top:6px}
+  /* ================================= TABS ================================== */
+  .tabs{
+    display:flex;gap:0;flex-wrap:wrap;margin:2px 0 20px;
+    border-bottom:1px solid var(--line-strong);
+  }
+  .tab{
+    background:none;color:var(--muted);border:0;border-bottom:2px solid transparent;
+    padding:9px 14px;font-size:13px;cursor:pointer;font-family:inherit;
+    margin-bottom:-1px;text-align:start;
+  }
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--text);border-bottom-color:var(--accent);font-weight:600}
+  .chart-pane{display:none}
+  .chart-pane.on{display:block}
+  .pane-title{font-size:15px;font-weight:600;margin:0 0 6px}
+  .pane-lede{font-size:12.8px;color:var(--muted);margin:0 0 14px;max-width:84ch;line-height:1.7}
+  .chart-box{position:relative;height:340px;margin-top:6px;min-width:0}
+  .chart-box canvas{max-width:100%}
   .chart-box-sm{height:250px}
-  .chart-note{font-size:11.8px;color:var(--muted);margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
-  .chart-note b{color:var(--text);font-weight:600}
+  .chart-note{
+    font-size:11.8px;color:var(--muted);margin-top:12px;
+    border-top:1px dashed var(--line-strong);padding-top:10px;line-height:1.6;
+  }
 
-  /* =========================== COMPARISON ============================= */
-  .cmp-head{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
-  .cmp-head .field{min-width:210px}
-  .cmp-body{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  /* =============================== COMPARE ================================ */
+  .cmp-head{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
+  .cmp-head .field{min-width:200px}
+  .cmp-body{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .cmp-body>div{min-width:0}
   @media(max-width:900px){.cmp-body{grid-template-columns:1fr}}
-  .cmp-table{width:100%;border-collapse:collapse;font-size:12.4px}
-  .cmp-table th,.cmp-table td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left}
-  .cmp-table th{color:var(--muted);font-weight:600;font-size:11.5px}
-  .cmp-table td.num,.cmp-table th.num{text-align:right}
-  .cmp-table tr.top td{background:rgba(76,141,255,.10)}
-  .cmp-swatch{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle}
+  .table-scroll{overflow-x:auto;max-width:100%}
+  .cmp-table{width:100%;border-collapse:collapse;font-size:12.2px}
+  .cmp-table th,.cmp-table td{
+    padding:7px 9px;border-bottom:1px solid var(--line-2);text-align:start;white-space:nowrap;
+  }
+  .cmp-table th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.2px;
+    border-bottom:1px solid var(--line-strong)}
+  .cmp-table td.num,.cmp-table th.num{text-align:end}
+  .cmp-table tr.top td{background:var(--accent-soft)}
+  .cmp-swatch{display:inline-block;width:9px;height:9px;border-radius:2px;
+    margin-inline-end:7px;vertical-align:middle}
 
-  /* =============================== TABLE ============================== */
-  .table-wrap{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:12px;margin-top:4px}
-  table{border-collapse:collapse;width:100%;font-size:12.6px;white-space:nowrap}
+  /* ============================== DATA TABLE =============================== */
+  .table-wrap{overflow:auto;max-height:460px;border:1px solid var(--line);border-radius:var(--radius);margin-top:6px}
+  table{border-collapse:collapse;width:100%;font-size:12.4px;white-space:nowrap}
   thead th{
-    position:sticky;top:0;background:#0c121b;color:var(--muted);
-    text-align:left;font-weight:600;padding:9px 11px;border-bottom:1px solid var(--line);z-index:2;
+    position:sticky;top:0;background:var(--panel-2);color:var(--muted);
+    text-align:start;font-weight:600;padding:9px 11px;
+    border-bottom:1px solid var(--line-strong);z-index:2;
+    font-size:11px;letter-spacing:.2px;
   }
-  tbody td{padding:7px 11px;border-bottom:1px solid rgba(30,42,58,.55)}
-  tbody tr:hover{background:rgba(76,141,255,.07)}
+  tbody td{padding:7px 11px;border-bottom:1px solid var(--line-2)}
+  tbody tr:hover{background:var(--paper-2)}
   tbody tr.row-flag td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
-  .pill{font-size:10.5px;padding:2px 8px;border-radius:999px;background:rgba(255,180,84,.14);color:var(--warn)}
-  .pill.ok{background:rgba(61,220,151,.12);color:var(--ok)}
-  .table-empty{color:var(--muted);font-size:13px;padding:14px 4px}
+  .pill{font-size:10.5px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:#8a3a12}
+  .pill.ok{background:#e4efe6;color:var(--ok)}
 
-  /* ============================= INSIGHTS ============================= */
-  .legend-note{font-size:12px;color:var(--muted);margin:-4px 0 14px}
-  .legend-note .k{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;margin:0 4px 0 10px}
-  .k.obs{background:rgba(76,141,255,.14);color:#8fb6ff}
-  .k.int{background:rgba(255,180,84,.14);color:var(--warn)}
-  .insights{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:14px}
-  .insight{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:15px}
-  .insight h4{font-size:13.5px;margin:0}
-  .insight .kind{font-size:10.5px;padding:2px 9px;border-radius:999px;display:inline-block;margin-bottom:9px}
-  .insight .kind.obs{background:rgba(76,141,255,.14);color:#8fb6ff;margin-right:6px}
-  .insight .kind.int{background:rgba(255,180,84,.14);color:var(--warn)}
-  .insight .body{font-size:12.9px;color:var(--muted);margin-top:9px}
-  .insight .body b{color:var(--text)}
-  .insight .src{font-size:11px;color:var(--faint);margin-top:10px;padding-top:9px;border-top:1px dashed var(--line)}
+  /* =============================== INSIGHTS =============================== */
+  .legend-note{font-size:12px;color:var(--muted);margin:0 0 8px;line-height:1.7}
+  .legend-note .k{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10.5px;margin:0 4px 0 8px}
+  .k.obs{background:var(--panel-2);color:var(--muted);border:1px solid var(--line-strong)}
+  .k.int{background:var(--accent-soft);color:#8a3a12}
+  .insights{display:block;border-top:1px solid var(--line)}
+  .insight{padding:15px 0;border-bottom:1px solid var(--line-2);min-width:0}
+  .insight h4{font-size:14px;margin:6px 0 0;font-weight:600}
+  .insight .kind{
+    font-size:10px;padding:1px 9px;border-radius:999px;display:inline-block;
+    letter-spacing:.3px;text-transform:uppercase;font-family:"IBM Plex Mono",monospace;
+  }
+  .insight .kind.obs{background:var(--panel-2);color:var(--muted);border:1px solid var(--line-strong)}
+  .insight .kind.int{background:var(--accent-soft);color:#8a3a12}
+  .insight .body{font-size:13px;color:var(--muted);margin-top:7px;line-height:1.7}
+  .insight .src{font-size:11px;color:var(--faint);margin-top:9px}
 
-  /* ============================ ASK THE DATA ========================== */
-  .qa-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  /* ================================= Q&A ================================== */
+  .qa-featured{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-bottom:10px}
+  .qa-more{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
   .qa-chip{
-    background:var(--panel-2);color:var(--text);border:1px solid var(--line);
-    padding:7px 13px;border-radius:999px;font-size:12.5px;cursor:pointer;
+    background:var(--panel);color:var(--text);border:1px solid var(--line-strong);
+    padding:7px 13px;border-radius:var(--radius);font-size:12.5px;cursor:pointer;
+    font-family:inherit;text-align:start;
   }
-  .qa-chip:hover{border-color:var(--accent);color:#fff}
-  .qa-chip.on{border-color:var(--accent);background:rgba(76,141,255,.14)}
+  .qa-chip:hover{border-color:var(--text)}
+  .qa-chip.on{border-color:var(--accent);background:var(--accent-soft)}
+  .qa-chip.feat{font-weight:600;border-color:var(--line)}
+  .qa-chip.feat:hover{border-color:var(--accent)}
+  .qa-chip.feat.on{background:var(--accent-soft);border-color:var(--accent)}
   .qa-row{display:flex;gap:10px;flex-wrap:wrap}
-  .qa-row input{flex:1;min-width:240px}
+  .qa-row input{flex:1;min-width:200px}
   .qa-row button{
-    background:var(--accent);color:#fff;border:0;border-radius:10px;
-    padding:9px 18px;font-size:13.5px;cursor:pointer;
+    background:var(--text);color:var(--paper);border:1px solid var(--text);
+    border-radius:var(--radius);padding:9px 18px;font-size:13.5px;
+    cursor:pointer;font-family:inherit;font-weight:600;
   }
-  .qa-answer{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:15px}
-  .qa-answer .q{font-size:12px;color:var(--muted)}
-  .qa-answer .a{font-size:13.6px;margin-top:7px;line-height:1.65}
-  .qa-answer .a b{color:var(--text)}
-  .qa-answer .src{font-size:11.5px;color:var(--faint);margin-top:11px;border-top:1px dashed var(--line);padding-top:9px}
+  .qa-row button:hover{background:var(--accent);border-color:var(--accent)}
+  .qa-answer{
+    margin-top:14px;background:var(--panel);border:1px solid var(--line);
+    border-inline-start:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;
+    padding:14px 16px;
+  }
+  .qa-answer .q{font-size:12px;color:var(--faint)}
+  .qa-answer .a{font-size:13.6px;margin-top:7px;line-height:1.7}
+  .qa-answer .src{font-size:11.3px;color:var(--faint);margin-top:11px;
+    border-top:1px dashed var(--line-strong);padding-top:9px}
+  .qa-answer.empty{border-inline-start-color:var(--line-strong)}
   .qa-answer.empty .a{color:var(--muted)}
 
-  /* ============================ ML RESULTS ============================ */
-  .ml-headline{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px}
-  .stat{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
-  .stat .k{font-size:23px;font-weight:700;color:var(--text);letter-spacing:.3px}
-  .stat .l{font-size:12px;color:var(--muted);margin-top:3px}
-  .stat .d{font-size:11.5px;color:var(--ok);margin-top:7px}
-  .ml-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  /* ============================== ML RESULTS =============================== */
+  #ml-results{border-top:2px solid var(--line-strong);background:var(--panel-2);
+    border-inline:1px solid var(--line);border-bottom:1px solid var(--line);
+    border-radius:var(--radius);padding:20px 22px;margin-top:38px}
+  .ml-intro{font-size:12.9px;color:var(--muted);margin:0 0 16px;max-width:88ch;line-height:1.7}
+  .ml-headline{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;
+    margin-bottom:20px;border-top:1px solid var(--line)}
+  .stat{padding:13px 16px 13px 0;border-bottom:1px solid var(--line-2);min-width:0}
+  .stat .k{font-size:22px;font-weight:600;color:var(--text);letter-spacing:.2px;
+    font-family:"IBM Plex Mono","IBM Plex Sans Arabic",monospace}
+  .stat .l{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .stat .d{font-size:11.2px;color:var(--ok);margin-top:6px}
+  .ml-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .ml-grid>div{min-width:0}
   @media(max-width:820px){.ml-grid{grid-template-columns:1fr}}
-  .ml-grid h3{font-size:13px;margin:0 0 8px;color:var(--text)}
-  .ml-grid h3 .tag{font-size:11px;color:var(--muted);font-weight:400;margin-left:6px}
+  .ml-grid h3{font-size:13px;margin:0 0 8px;color:var(--text);font-weight:600}
+  .ml-grid h3 .tag{font-size:11px;color:var(--faint);font-weight:400;margin-inline-start:6px}
   .ml-table{table-layout:auto;white-space:normal}
-  .ml-table thead th{position:static;background:transparent;padding:6px 10px}
-  .ml-table th,.ml-table td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left}
-  .ml-table td:not(:first-child),.ml-table th:not(:first-child){text-align:right}
-  .ml-table tr.best td{background:rgba(76,141,255,.10);font-weight:600;color:#fff}
-  .fig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:18px}
-  .fig{background:var(--panel-2);border:1px solid var(--line);border-radius:14px;padding:10px}
-  .fig img{width:100%;border-radius:9px;display:block;background:#fff}
-  .fig .cap{font-size:11.5px;color:var(--muted);margin-top:9px}
-  .ml-note{font-size:12.5px;color:var(--muted);margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
-  .ml-note b{color:var(--warn)}
-  .spec-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:16px}
-  .spec{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .spec .t{font-size:11px;color:var(--muted);letter-spacing:.4px;text-transform:uppercase}
-  .spec .v{font-size:13px;margin-top:6px}
-  .spec .v code{font-size:12px}
+  .ml-table thead th{position:static;background:transparent;padding:6px 10px;
+    border-bottom:1px solid var(--line-strong)}
+  .ml-table th,.ml-table td{padding:7px 10px;border-bottom:1px solid var(--line-2);text-align:start}
+  .ml-table td:not(:first-child),.ml-table th:not(:first-child){text-align:end}
+  .ml-table tr.best td{background:var(--accent-soft);font-weight:600}
+  .fig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:20px}
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:10px}
+  .fig img{width:100%;border-radius:2px;display:block;background:#fff}
+  .fig .cap{font-size:11.3px;color:var(--muted);margin-top:9px;line-height:1.55}
+  .ml-note{font-size:12.4px;color:var(--muted);margin-top:18px;
+    border-top:1px solid var(--line-strong);padding-top:15px;line-height:1.7}
+  .ml-note b{color:#8a3a12}
+  .spec-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:0;margin-bottom:18px;
+    border-top:1px solid var(--line)}
+  .spec{padding:11px 16px 11px 0;border-bottom:1px solid var(--line-2);min-width:0}
+  .spec .t{font-size:10.5px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;
+    font-family:"IBM Plex Mono",monospace}
+  .spec .v{font-size:12.6px;margin-top:6px;line-height:1.6;overflow-wrap:anywhere}
 
-  /* =========================== METHODOLOGY ============================ */
-  .method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-  .mtable{width:100%;border-collapse:collapse;font-size:12.3px;margin-top:6px}
-  .mtable th,.mtable td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-  .mtable th{color:var(--muted);font-weight:600;font-size:11.5px}
-  .mtable td.num{text-align:right;white-space:nowrap}
-  .mlist{margin:8px 0 0;padding-left:18px;font-size:12.7px;color:var(--muted)}
-  .mlist li{margin-bottom:6px}
+  /* ============================== METHODOLOGY ============================== */
+  #method .src-line{
+    font-size:12.4px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px 14px;margin-bottom:16px;line-height:1.7;
+  }
+  #method .src-line b{color:var(--text)}
+  .method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:22px}
+  .info-item{min-width:0}
+  .info-item .n{
+    width:22px;height:22px;border:1px solid var(--line-strong);color:var(--accent);
+    display:grid;place-items:center;font-size:11px;font-weight:600;margin-bottom:9px;
+    font-family:"IBM Plex Mono",monospace;border-radius:2px;
+  }
+  .info-item h3{font-size:13.5px;margin:0 0 6px;font-weight:600}
+  .info-item p{margin:0;font-size:12.6px;color:var(--muted);line-height:1.7}
+  .mtable{width:100%;border-collapse:collapse;font-size:12.2px;margin-top:6px}
+  .mtable th,.mtable td{padding:7px 9px;border-bottom:1px solid var(--line-2);
+    text-align:start;vertical-align:top}
+  .mtable th{color:var(--muted);font-weight:600;font-size:11px;
+    border-bottom:1px solid var(--line-strong)}
+  .mtable td.num{text-align:end;white-space:nowrap}
+  .mlist{margin:10px 0 0;padding-inline-start:18px;font-size:12.6px;color:var(--muted);line-height:1.75}
+  .mlist li{margin-bottom:7px}
   .mlist b{color:var(--text)}
-  .cite{font-size:12.3px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .warnbox{border-left:3px solid var(--warn);background:rgba(255,180,84,.07);border-radius:0 12px 12px 0;padding:12px 14px;font-size:12.7px;color:var(--muted);margin-top:14px}
+  .cite{font-size:12.3px;color:var(--muted);background:var(--panel-2);
+    border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;line-height:1.75}
+  .warnbox{
+    border-inline-start:3px solid var(--warn);background:#f7f2e3;
+    border-radius:0 var(--radius) var(--radius) 0;padding:12px 14px;
+    font-size:12.5px;color:#5c5340;margin-top:14px;overflow-wrap:anywhere;line-height:1.7;
+  }
   .warnbox b{color:var(--warn)}
 
-  /* ============================== FOOTER ============================= */
-  footer.site{border-top:1px solid var(--line);margin-top:30px;padding:22px 0 40px;color:var(--muted);font-size:12.5px}
-  footer.site .row{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
-  footer.site b{color:var(--text)}
+  details.mgroup{border:0;border-bottom:1px solid var(--line-strong);margin:0}
+  details.mgroup:first-of-type{border-top:1px solid var(--line-strong)}
+  details.mgroup summary{
+    cursor:pointer;list-style:none;padding:14px 2px;font-size:13.5px;font-weight:600;
+    color:var(--text);display:flex;align-items:center;gap:9px;user-select:none;
+  }
+  details.mgroup summary::-webkit-details-marker{display:none}
+  details.mgroup summary::before{
+    content:"+";color:var(--accent);font-size:15px;font-family:"IBM Plex Mono",monospace;
+    width:14px;text-align:center;
+  }
+  details.mgroup[open] summary::before{content:"–"}
+  details.mgroup summary:hover{color:var(--accent)}
+  details.mgroup .mbody{padding:2px 0 20px;border-top:1px dashed var(--line-strong)}
+  details.mgroup .mbody>*:first-child{margin-top:14px}
 
-  /* loading / error */
-  #status{padding:40px 0;text-align:center;color:var(--muted)}
-  .err{color:#ff6b6b}
+  /* ================================= FOOTER =============================== */
+  footer.site{border-top:1px solid var(--line-strong);margin-top:34px;padding:24px 0 48px;
+    color:var(--muted);font-size:12.4px;line-height:1.75}
+  footer.site .row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:baseline}
+  footer.site b{color:var(--text)}
+  footer.site .fine{margin-top:12px;color:var(--faint);font-size:11.5px;max-width:92ch}
+
+  #status{padding:46px 0;text-align:center;color:var(--muted)}
+  .err{color:var(--danger)}
+
 </style>
 </head>
+
 <body>
 
-<!-- ================================ HEADER ================================ -->
 <header class="site">
   <div class="wrap header-inner">
     <div class="brand">
-      <div class="flame">🔥</div>
-      <div>
-        <h1>FLEX Explorer — Microgravity Fire Safety</h1>
-        <div class="sub">NASA PSI-69 · Flame Extinguishment Experiment · droplet combustion dataset</div>
+      <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.2c2.9 4.1 5.3 6.4 5.3 9.6a5.3 5.3 0 0 1-10.6 0c0-1.7.7-3 1.8-4.4.2 1.2.7 2 1.5 2.4-.5-2.6.2-5 2-7.6Z"
+              fill="none" stroke="#bc3f0e" stroke-width="1.25" stroke-linejoin="round"/>
+      </svg>
+      <div class="word">
+        <h1>Flex Explorer</h1>
+        <span class="sub">NASA PSI-69 · FLEX · احتراق القطرات في الجاذبية الصغرى</span>
       </div>
     </div>
+    <nav class="top" aria-label="أقسام الصفحة">
+      <a href="#explore">الرسوم</a>
+      <a href="#ask">اسأل البيانات</a>
+      <a href="#ml-results">نتائج النماذج</a>
+      <a href="#method">المصدر والمنهجية</a>
+    </nav>
     <div class="header-badges">
-      <span class="badge">Rows <b id="badge-rows">—</b></span>
-      <span class="badge">License <b>CC0-1.0</b></span>
-      <span class="badge">DOI <b>10.60555/mbq8-0451</b></span>
-      <span class="badge">Challenge <b>Flame in Freefall</b></span>
+      <span class="badge"><span class="lab">السجلات</span><b id="badge-rows">—</b></span>
+      <span class="badge"><span class="lab">الترخيص</span><b>CC0-1.0</b></span>
+      <span class="badge"><span class="lab">DOI</span><b>10.60555/mbq8-0451</b></span>
     </div>
   </div>
 </header>
 
 <main class="wrap">
 
-  <!-- ============================ WHAT THIS IS ============================ -->
-  <section class="card" id="brief">
-    <h2>What this site is — in 30 seconds <span class="tag">المقدمة</span></h2>
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="n">؟</div>
-        <h3>The scientific question</h3>
-        <p>كيف تتغيّر طريقة احتراق قطرة وقود واحدة وانطفاؤها في الجاذبية الصغرى عند تغيّر البيئة
-           (كسر الأكسجين، الضغط، غاز التخفيف، نوع الوقود)؟ هذه هي بيانات تجربة FLEX التي أجراها NASA على ISS.</p>
-      </div>
-      <div class="info-item">
-        <div class="n">✓</div>
-        <h3>What this site does</h3>
-        <p>يعرض <b>274 سجلًا</b> من الجدول الرسمي لـ PSI-69 مع فلاتر ورسوم ومقارنة بين مجموعات الظروف،
-           ويقيس نماذج تعلّم آلي <b>داخل هذه البيانات وحدها</b>، ويشرح مصدر البيانات ومنهجية التقييم.</p>
-      </div>
-      <div class="info-item no">
-        <div class="n">✕</div>
-        <h3>What it cannot conclude</h3>
-        <p>لا يتنبّأ بحريق داخل مركبة فضائية، ولا يعطي توصيات هندسية، ولا يمنع أي حريق، ولا يصف كل صف بأنه
-           تجربة أُجريت في الفضاء (الجدول لا يحوي عمودًا يحدّد ذلك — راجع «مصدر البيانات والمنهجية»).</p>
-      </div>
+  <!-- ================================= HERO ================================ -->
+  <section class="hero" id="hero">
+    <p class="eyebrow">بيانات تجارب NASA FLEX</p>
+    <h2 class="hero-title">اكتشف كيف تحترق قطرات الوقود في الفضاء</h2>
+    <p class="hero-lede">
+      هذه أداة لاستكشاف بيانات تجربة FLEX: <b>274 سجلًا</b> لاحتراق قطرة وقود واحدة في الجاذبية الصغرى —
+      مع فلاتر ورسوم ومقارنة بين ظروف الاختبار، وأسئلة تُحسب من السجلات المعروضة نفسها.
+    </p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#explore">استكشف البيانات</a>
+      <a class="btn" href="#ask">اسأل البيانات</a>
     </div>
+    <p class="hero-note">
+      هذه الأداة تساعد على استكشاف نتائج التجارب، ولا تستطيع التنبؤ بحريق داخل مركبة فضائية ولا تعطي
+      توصيات هندسية، ولا يصف أي صف بأنه تجربة أُجريت في الفضاء — الجدول لا يحوي عمودًا يحدّد ذلك
+      (التفصيل في «المصدر والمنهجية»).
+    </p>
   </section>
 
-  <div id="status">Loading <code>data/flex_clean.csv</code>…</div>
+  <div id="status">جارٍ تحميل <code>data/flex_clean.csv</code>…</div>
 
   <!-- hidden until data loads -->
   <div id="app" style="display:none">
 
+    <!-- ============================ SUMMARY STRIP ============================ -->
+    <section class="summary" aria-label="ملخّص سريع">
+      <div class="sum-item">
+        <div class="v" id="sum-experiments">—</div>
+        <div class="l">سجلًا في جدول FLEX الرسمي — لا يُحذف أي صف</div>
+      </div>
+      <div class="sum-item">
+        <div class="v" id="sum-fuels">—</div>
+        <div class="l">نوعا الوقود في هذه التجارب: Methanol · Heptane</div>
+      </div>
+      <div class="sum-item">
+        <div class="v" id="sum-median-k">—</div>
+        <div class="l">وسيط ثابت الاحتراق k ضمن السجلات المعروضة</div>
+      </div>
+    </section>
+
+    <div id="app-rest">
+
     <!-- ============================== FILTERS ============================== -->
-    <section class="card">
-      <h2>Filters <span class="tag">narrow the 274 records</span></h2>
+    <section class="card panel" id="filters" style="margin-top:26px">
+      <p class="eyebrow">تصفية</p>
+      <h2>تصفية السجلات <span class="tag">اختصر الـ274 سجلًا إلى مجموعة تهمّك</span></h2>
       <div class="filters">
 
-        <!-- Fuel -->
         <div class="field">
-          <label for="f-fuel">Fuel</label>
+          <label for="f-fuel">الوقود</label>
           <select id="f-fuel">
-            <option value="All">All</option>
-            <option value="Methanol">Methanol</option>
-            <option value="Heptane">Heptane</option>
+            <option value="All">الكل</option>
+            <option value="Methanol">Methanol (ميثانول)</option>
+            <option value="Heptane">Heptane (هيبتان)</option>
           </select>
         </div>
 
-        <!-- O2 mole fraction (dual range) -->
         <div class="field">
-          <label>O₂ mole fraction <span class="muted" id="o2-label"></span></label>
-          <input type="range" id="f-o2-lo" min="0.10" max="0.35" step="0.01" />
-          <input type="range" id="f-o2-hi" min="0.10" max="0.35" step="0.01" />
+          <label>كسر الأكسجين المولي x_O₂ <span class="muted" id="o2-label"></span></label>
+          <input type="range" id="f-o2-lo" min="0.10" max="0.35" step="0.01" aria-label="الحد الأدنى لكسر الأكسجين المولي" />
+          <input type="range" id="f-o2-hi" min="0.10" max="0.35" step="0.01" aria-label="الحد الأعلى لكسر الأكسجين المولي" />
         </div>
 
-        <!-- Pressure (dual range) -->
         <div class="field">
-          <label>Pressure (atm) <span class="muted" id="p-label"></span></label>
-          <input type="range" id="f-p-lo" min="0.5" max="3.1" step="0.01" />
-          <input type="range" id="f-p-hi" min="0.5" max="3.1" step="0.01" />
+          <label>الضغط (atm) <span class="muted" id="p-label"></span></label>
+          <input type="range" id="f-p-lo" min="0.5" max="3.1" step="0.01" aria-label="الحد الأدنى للضغط (atm)" />
+          <input type="range" id="f-p-hi" min="0.5" max="3.1" step="0.01" aria-label="الحد الأعلى للضغط (atm)" />
         </div>
 
-        <!-- Test end -->
         <div class="field">
-          <label for="f-end">Test end</label>
+          <label for="f-end">نهاية الاختبار</label>
           <select id="f-end">
-            <option value="All">All</option>
-            <option value="Extinction">Extinction</option>
-            <option value="Disruption">Disruption</option>
-            <option value="Completion">Completion</option>
+            <option value="All">الكل</option>
+            <option value="Extinction">Extinction (انطفاء)</option>
+            <option value="Disruption">Disruption (انطفاء اضطرابي)</option>
+            <option value="Completion">Completion (احتراق كامل)</option>
           </select>
         </div>
 
-        <!-- Diluent -->
         <div class="field">
-          <label for="f-dil">Diluent / suppressant gas</label>
+          <label for="f-dil">غاز التخفيف / الإطفاء</label>
           <select id="f-dil">
-            <option value="All">All</option>
-            <option value="N2">N₂ (nitrogen)</option>
-            <option value="CO2">CO₂ (carbon dioxide)</option>
-            <option value="He">He (helium)</option>
+            <option value="All">الكل</option>
+            <option value="N2">N₂ (نيتروجين)</option>
+            <option value="CO2">CO₂ (ثاني أكسيد الكربون)</option>
+            <option value="He">He (هيليوم)</option>
           </select>
         </div>
       </div>
 
       <div class="filter-foot">
-        <button class="reset" id="reset">Reset</button>
-        <span class="count">Showing <b id="count">—</b> of <b id="total">—</b> records</span>
-        <span class="footnote">test 114 (C11M201) has no recorded pressure (<code>missing_pressure</code>) and is excluded by the pressure filter</span>
+        <button class="reset" id="reset">مسح الفلاتر</button>
+        <span class="count">تُعرض <b id="count">—</b> من <b id="total">—</b> سجلًا</span>
+        <span class="footnote">الاختبار 114 (C11M201) لا يحمل ضغطًا مسجّلًا (<code>missing_pressure</code>) ويُستبعد من فلتر الضغط</span>
       </div>
     </section>
 
     <!-- ================================ KPIs =============================== -->
     <section class="card">
-      <h2>At a glance <span class="tag" id="kpi-tag">recomputed from the current selection</span></h2>
+      <p class="eyebrow">أرقام التحديد</p>
+      <h2>أرقام التحديد الحالي <span class="tag">تُعاد حسابها مع كل تغيير في الفلاتر</span></h2>
       <div class="kpis" id="kpis"></div>
     </section>
 
-    <!-- =============================== CHARTS ============================== -->
-    <section class="charts">
-      <div class="card chart-card">
-        <h2>d² vs burn time <span class="tag">one segment per test</span></h2>
+    <!-- =============================== EXPLORE ============================= -->
+    <section class="card" id="explore">
+      <p class="eyebrow">استكشاف الرسوم</p>
+      <h2>استكشف البيانات سؤالًا سؤالًا <span class="tag">اختر سؤالًا علميًا — يظهر رسمه وشرحه</span></h2>
+
+      <div class="tabs" role="tablist" aria-label="الرسوم">
+        <button class="tab on" role="tab" aria-selected="true" data-chart="d2">كم عمر كل قطرة حتى الانطفاء؟</button>
+        <button class="tab" role="tab" aria-selected="false" data-chart="k">هل يزيد الأكسجين معدّل الاحتراق k؟</button>
+        <button class="tab" role="tab" aria-selected="false" data-chart="scatter">هل يصغّر الأكسجين قطر انطفاء اللهب؟</button>
+        <button class="tab" role="tab" aria-selected="false" data-chart="outcome">كيف تنتهي الاختبارات؟</button>
+        <button class="tab" role="tab" aria-selected="false" data-chart="cmp">أي ظروف تنتج أعلى k؟</button>
+      </div>
+
+      <div class="chart-pane on" data-pane="d2" role="tabpanel">
+        <p class="pane-title">كم عمر كل قطرة حتى أن تُقاس عند نقطة القياس الأخيرة؟</p>
+        <p class="pane-lede">
+          المحور الأفقي = زمن الاحتراق بالثواني (s)، العمودي = مساحة القطرة d² بالملليمتر المربّع (mm²).
+          كل خط = اختبار واحد يبدأ من (0, d₀²) وينتهي عند نقطة القياس الأخيرة؛ الميل = −k،
+          أي كلما كان الخط أشدّ انحدارًا كان ثابت k أكبر (احتراق أسرع).
+        </p>
         <div class="chart-box"><canvas id="c-d2"></canvas></div>
         <div class="chart-note">
-          <b>How to read it:</b> المحور الأفقي = زمن الاحتراق (s)، العمودي = مساحة القطرة d² (mm²).
-          كل خط = اختبار واحد يبدأ من (0, d₀²) وينتهي عند نقطة القياس الأخيرة؛ الميل = −k، أي كلما كان الخط
-          أشدّ انحدارًا كان الثابت k أكبر (احتراق أسرع). يُرسم فقط ما توفر فيه <code>d₀</code> وزمن احتراق
-          <b>وقطر نهاية مُقاس</b> — السجلات التي <code>extinction_diameter_mm = 0</code> تعني «لم يُقاس» فتُستبعد.
+          يُرسم فقط ما توفر فيه <code>d₀</code> وزمن احتراق <b>وقطر نهاية مُقاس</b> — السجلات التي
+          <code>extinction_diameter_mm = 0</code> تعني «لم يُقاس» فتُستبعد من هذا الرسم فقط (لا من الجدول).
         </div>
       </div>
 
-      <div class="card chart-card">
-        <h2>Burning-rate constant k vs oxygen <span class="tag">mm²/s vs mole fraction</span></h2>
+      <div class="chart-pane" data-pane="k" role="tabpanel">
+        <p class="pane-title">هل يزيد تركيز الأكسجين معدّل الاحتراق k؟</p>
+        <p class="pane-lede">
+          المحور الأفقي = كسر الأكسجين المولي x_O₂ (بلا وحدة، من 0.12 إلى 0.34)،
+          العمودي = ثابت معدّل الاحتراق k بوحدة <b>mm²/s</b>. كل نقطة = اختبار واحد به k مُقاس، ولونها = نوع الوقود.
+        </p>
         <div class="chart-box"><canvas id="c-k"></canvas></div>
         <div class="chart-note">
-          <b>How to read it:</b> المحور الأفقي = كسر الأكسجين المولي x_O₂ (بلا وحدة، 0.12–0.34)،
-          العمودي = ثابت معدّل الاحتراق k بوحدة <b>mm²/s</b>. كل نقطة = اختبار واحد به k مُقاس، ولونها = الوقود.
-          <br><b>يحلّ محلّ</b> الرسم القديم الذي رتّب الاختبارات على محور «رقم الاختبار» — رقم الاختبار تسلسل
-          تسجيل وليس متغيرًا علميًا، فلا معنى لترتيبه.
+          يحلّ هذا الرسم محلّ رسم «رقم الاختبار» القديم: رقم الاختبار تسلسل تسجيل وليس متغيّرًا علميًا،
+          فلا معنى لترتيب الاختبارات عليه.
         </div>
       </div>
 
-      <div class="card chart-card">
-        <h2>Flame extinction diameter vs oxygen <span class="tag">mm vs mole fraction</span></h2>
+      <div class="chart-pane" data-pane="scatter" role="tabpanel">
+        <p class="pane-title">هل يصغّر تركيز الأكسجين قطر انطفاء اللهب المرئي؟</p>
+        <p class="pane-lede">
+          المحور الأفقي = x_O₂ (بلا وحدة)، العمودي = قطر انطفاء اللهب المرئي d_ext بالملليمتر (mm).
+          النقاط الأعلى = اللهب احتاج قطرة أكبر ليطفو عند تركيز أكسجين مماثل.
+        </p>
         <div class="chart-box"><canvas id="c-scatter"></canvas></div>
         <div class="chart-note">
-          <b>How to read it:</b> المحور الأفقي = x_O₂، العمودي = قطر انطفاء اللهب المرئي d_ext (mm).
           يُرسم فقط ما قيمته <code>&gt; 0</code>؛ القيمة 0 في الملف تعني «لم يُقس» وليست قيمة فيزيائية.
-          النقاط الأعلى = اللهب احتاج قطرة أكبر ليطفو عند نفس تركيز الأكسجين.
         </div>
       </div>
 
-      <div class="card chart-card">
-        <h2>How tests end <span class="tag">counts in the selection</span></h2>
-        <div class="chart-box chart-box-sm"><canvas id="c-outcome"></canvas></div>
-        <div class="chart-note">
-          <b>How to read it:</b> عدد السجلات في كل نهاية اختبار داخل التحديد الحالي، مقسّمة حسب الوقود.
+      <div class="chart-pane" data-pane="outcome" role="tabpanel">
+        <p class="pane-title">كيف تنتهي الاختبارات داخل التحديد الحالي؟</p>
+        <p class="pane-lede">
+          الأعمدة = عدد السجلات في كل نهاية اختبار، مقسّمة حسب نوع الوقود.
           <code>Extinction</code> = انطفاء عند قطر محدود، <code>Disruption</code> = انطفاء اضطرابي،
-          <code>Completion</code> = احتراق حتى الاستهلاك الكامل. هذه الفئات هي هدف نموذج التصنيف أدناه.
-        </div>
+          <code>Completion</code> = احتراق حتى الاستهلاك الكامل — هذه الفئات هي هدف نموذج التصنيف في قسم «كيف اختبرنا التوقعات؟».
+        </p>
+        <div class="chart-box chart-box-sm"><canvas id="c-outcome"></canvas></div>
       </div>
-    </section>
 
-    <!-- ============================ COMPARISON ============================= -->
-    <section class="card">
-      <h2>Compare &amp; rank conditions <span class="tag">رتّب المجموعات حسب وسيط k أو غيره</span></h2>
-      <div class="cmp-head">
-        <div class="field">
-          <label for="cmp-by">Group the records by</label>
-          <select id="cmp-by">
-            <option value="fuel">Fuel (Methanol / Heptane)</option>
-            <option value="o2">O₂ band (mole fraction)</option>
-            <option value="p">Pressure band (atm)</option>
-            <option value="dil">Diluent gas (N₂ / CO₂ / He)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="cmp-sort">Sort the table by</label>
-          <select id="cmp-sort">
-            <option value="k">Median k (high → low)</option>
-            <option value="n">Number of records</option>
-            <option value="ext">Share of Extinction ends</option>
-            <option value="o2">Median O₂ (high → low)</option>
-          </select>
-        </div>
-      </div>
-      <div class="cmp-body">
-        <div>
-          <div class="chart-box chart-box-sm"><canvas id="c-compare"></canvas></div>
-          <div class="chart-note">
-            <b>How to read it:</b> كل عمود = وسيط k (mm²/s) لمجموعة واحدة داخل التحديد الحالي.
-            الجدول بجانبه يعطي حجم العيّنة والمدى المئيني (Q1–Q3) — العمود وحده لا يعني شيئًا بلا عدد السجلات.
+      <div class="chart-pane" data-pane="cmp" role="tabpanel">
+        <p class="pane-title">أي ظروف اختبار تنتج أعلى ثابت k؟</p>
+        <p class="pane-lede">
+          جمّع السجلات حسب الوقود أو نطاق الأكسجين أو الضغط أو غاز التخفيف، ورتّب المجموعات حسب وسيط k أو غيره.
+          كل عمود = وسيط k (mm²/s) لمجموعة واحدة داخل التحديد الحالي.
+        </p>
+        <div class="cmp-head">
+          <div class="field">
+            <label for="cmp-by">تجميع السجلات حسب</label>
+            <select id="cmp-by">
+              <option value="fuel">الوقود (Methanol / Heptane)</option>
+              <option value="o2">نطاق الأكسجين (كسر مولي)</option>
+              <option value="p">نطاق الضغط (atm)</option>
+              <option value="dil">غاز التخفيف (N₂ / CO₂ / He)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="cmp-sort">ترتيب الجدول حسب</label>
+            <select id="cmp-sort">
+              <option value="k">وسيط k (من الأعلى)</option>
+              <option value="n">عدد السجلات</option>
+              <option value="ext">نسبة نهايات Extinction</option>
+              <option value="o2">وسيط O₂ (من الأعلى)</option>
+            </select>
           </div>
         </div>
-        <div>
-          <table class="cmp-table" id="cmp-table">
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th class="num">n</th>
-                <th class="num">median k</th>
-                <th class="num">Q1–Q3</th>
-                <th class="num">% Extinction</th>
-                <th class="num">median O₂</th>
-              </tr>
-            </thead>
-            <tbody id="cmp-body"></tbody>
-          </table>
-          <p class="section-note" id="cmp-note"></p>
+        <div class="cmp-body">
+          <div>
+            <div class="chart-box chart-box-sm"><canvas id="c-compare"></canvas></div>
+            <div class="chart-note">
+              العمود وحده لا يعني شيئًا بلا عدد السجلات — الجدول بجانبه يعطي حجم العيّنة
+              والمدى المئيني (Q1–Q3) لكل مجموعة.
+            </div>
+          </div>
+          <div>
+            <div class="table-scroll"><table class="cmp-table" id="cmp-table">
+              <thead>
+                <tr>
+                  <th>المجموعة</th>
+                  <th class="num">n</th>
+                  <th class="num">وسيط k</th>
+                  <th class="num">Q1–Q3</th>
+                  <th class="num">% Extinction</th>
+                  <th class="num">وسيط O₂</th>
+                </tr>
+              </thead>
+              <tbody id="cmp-body"></tbody>
+            </table></div>
+            <p class="section-note" id="cmp-note"></p>
+          </div>
         </div>
       </div>
-    </section>
-
-    <!-- ================================ TABLE ============================== -->
-    <section class="card">
-      <h2>Experiments <span class="tag" id="table-count"></span></h2>
-      <div class="table-wrap">
-        <table>
-          <thead><tr id="thead-row"></tr></thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-      <p class="section-note">
-        كل السجلات معروضة كما هي من المصدر (لا يُحذف أي صف). الصفوف ذات شريط أصفر يسارًا بها قيمة ناقصة —
-        التفصيل في «مصدر البيانات والمنهجية».
-      </p>
     </section>
 
     <!-- ============================== INSIGHTS ============================ -->
     <section class="card">
-      <h2>What the current selection says <span class="tag">رؤى تتغيّر مع الفلاتر</span></h2>
+      <p class="eyebrow">ملاحظات من السجلات</p>
+      <h2>ماذا تقول البيانات الحالية؟ <span class="tag">رؤى تتغيّر مع الفلاتر</span></h2>
       <p class="legend-note">
         <span class="k obs">ملاحظة من البيانات</span> محسوبة الآن من السجلات المعروضة فقط
         <span class="k int">تفسير محتمل</span> قراءة مرتبطة بمصدر موثّق — ليست توصية هندسية ولا تنبؤًا بحريق
@@ -477,8 +676,9 @@
     </section>
 
     <!-- ============================ ASK THE DATA ========================== -->
-    <section class="card">
-      <h2>Ask the data <span class="tag">إجابات محسوبة من السجلات فقط — بلا استدعاء لأي خدمة خارجية</span></h2>
+    <section class="card panel" id="ask">
+      <p class="eyebrow">سؤال البيانات</p>
+      <h2>اسأل البيانات <span class="tag">إجابات محسوبة من السجلات فقط — بلا استدعاء لأي خدمة خارجية</span></h2>
       <p class="section-note" style="margin-top:0">
         المساعد أدناه ليس نموذجًا لغويًا: كل إجابة تُحسب لحظيًا من <code>data/flex_clean.csv</code> داخل الفلاتر
         الحالية، ويُذكر عدد السجلات المستند إليها. ما لا تدعمه البيانات يُجاب بأنه لا تكفي — دون اختلاق أرقام أو مراجع.
@@ -494,9 +694,32 @@
       </div>
     </section>
 
+    <!-- ================================ TABLE ============================== -->
+    <section class="card">
+      <p class="eyebrow">السجل الكامل</p>
+      <h2>جدول التجارب <span class="tag" id="table-count"></span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead-row"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="section-note">
+        كل السجلات معروضة كما هي من المصدر (لا يُحذف أي صف). الصفوف ذات شريط أصفر يسارًا بها قيمة ناقصة —
+        التفصيل في «مصدر البيانات والمنهجية».
+      </p>
+    </section>
+
     <!-- ============================== ML RESULTS ========================== -->
     <section class="card" id="ml-results">
-      <h2>Machine Learning results <span class="tag" id="ml-tag">—</span></h2>
+      <p class="eyebrow">تقييم النماذج</p>
+      <h2>كيف اختبرنا التوقعات؟ <span class="tag" id="ml-tag">—</span></h2>
+      <p class="ml-intro">
+        هل يمكن من <b>شروط الاختبار المعروفة قبل اشتعالها</b> (الأكسجين، الضغط، الغاز المخفّف، القطر الابتدائي، الوقود)
+        تقدير ثابت k أو نوع نهاية الاختبار؟ درسنا هذا السؤال بتدريب نماذج تعلّم آلي وتقييمها بـ
+        <b>تقسيم يمنع تسريب بيانات الحملة</b> — والنتيجة أدناه تقيس ما تعلّمه النموذج <b>داخل هذه السجلات وحدها</b>،
+        وليس «سلوك الحرائق عمومًا» ولا تنبؤًا بحريق في مركبة فضائية.
+      </p>
 
       <div class="spec-list" id="ml-specs"></div>
 
@@ -504,35 +727,43 @@
 
       <div class="ml-grid">
         <div>
-          <h3>Regression — <code>burning_rate_mm2_s</code> <span class="tag" id="ml-reg-rows"></span></h3>
-          <table class="ml-table">
-            <thead><tr><th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead>
-            <tbody id="ml-reg-body"></tbody>
-          </table>
+          <h3>الانحدار — <code>burning_rate_mm2_s</code> <span class="tag" id="ml-reg-rows"></span></h3>
+          <div class="table-scroll">
+            <table class="ml-table">
+              <thead><tr><th>النموذج</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead>
+              <tbody id="ml-reg-body"></tbody>
+            </table>
+          </div>
         </div>
         <div>
-          <h3>Classification — <code>test_end</code> <span class="tag" id="ml-cls-rows"></span></h3>
-          <table class="ml-table">
-            <thead><tr><th>Model</th><th>Bal. acc</th><th>Macro-F1</th></tr></thead>
-            <tbody id="ml-cls-body"></tbody>
-          </table>
+          <h3>التصنيف — <code>test_end</code> <span class="tag" id="ml-cls-rows"></span></h3>
+          <div class="table-scroll">
+            <table class="ml-table">
+              <thead><tr><th>النموذج</th><th>Bal. acc</th><th>Macro-F1</th></tr></thead>
+              <tbody id="ml-cls-body"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       <div class="ml-grid" style="margin-top:18px">
         <div>
-          <h3>Per-class recall (out-of-fold) <span class="tag">من مصفوفة الالتباس</span></h3>
-          <table class="ml-table">
-            <thead><tr><th>Class</th><th>Precision</th><th>Recall</th><th>F1</th><th>n</th></tr></thead>
-            <tbody id="ml-perclass-body"></tbody>
-          </table>
+          <h3>أداء كل فئة (out-of-fold) <span class="tag">من مصفوفة الالتباس</span></h3>
+          <div class="table-scroll">
+            <table class="ml-table">
+              <thead><tr><th>الفئة</th><th>Precision</th><th>Recall</th><th>F1</th><th>n</th></tr></thead>
+              <tbody id="ml-perclass-body"></tbody>
+            </table>
+          </div>
         </div>
         <div>
-          <h3>Feature importance — burning rate <span class="tag" id="fi-tag">—</span></h3>
-          <table class="ml-table">
-            <thead><tr><th>#</th><th>Feature</th><th>Gini</th><th>Permutation (ΔMAE)</th></tr></thead>
-            <tbody id="fi-body"></tbody>
-          </table>
+          <h3>أهمية المتغيّرات — معدّل الاحتراق <span class="tag" id="fi-tag">—</span></h3>
+          <div class="table-scroll">
+            <table class="ml-table">
+              <thead><tr><th>#</th><th>المتغيّر</th><th>Gini</th><th>Permutation (ΔMAE)</th></tr></thead>
+              <tbody id="fi-body"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -556,57 +787,75 @@
 
     <!-- ========================= DATA SOURCE / METHOD ===================== -->
     <section class="card" id="method">
-      <h2>Data source &amp; methodology <span class="tag">مصدر البيانات والمنهجية</span></h2>
+      <p class="eyebrow">التوثيق</p>
+      <h2>مصدر البيانات والمنهجية <span class="tag">افتح ما يهمّك — كل التفاصيل موثّقة</span></h2>
+      <p class="src-line">
+        <b>المصدر:</b> NASA Physical Sciences Informatics (PSI) — تحقيق
+        <b>PSI-69 · FLEX · Version 5</b> · DOI
+        <a href="https://doi.org/10.60555/mbq8-0451" target="_blank" rel="noopener">10.60555/mbq8-0451</a>
+        · الترخيص <b>CC0-1.0</b> ·
+        <a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">صفحة التحقيق ↗</a>
+      </p>
 
-      <div class="method-grid">
-        <div class="info-item">
-          <div class="n">1</div>
-          <h3>المصدر</h3>
-          <p>
-            <b>NASA Physical Sciences Informatics (PSI)</b> — تحقيق <b>PSI-69 · FLEX · Version 5</b>.<br>
-            DOI <a href="https://doi.org/10.60555/mbq8-0451" target="_blank" rel="noopener">10.60555/mbq8-0451</a> ·
-            الترخيص <b>CC0-1.0</b> ·
-            <a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">صفحة التحقيق ↗</a><br>
-            رابط التنزيل المباشر (GEODE) موثّق في <code>data/provenance.csv</code> مع تاريخ الوصول والـsha256.
-          </p>
+      <details class="mgroup" open>
+        <summary>المصدر والملف وفضاء أم أرض؟</summary>
+        <div class="mbody">
+          <div class="method-grid">
+            <div class="info-item">
+              <div class="n">1</div>
+              <h3>المصدر</h3>
+              <p>
+                <b>NASA Physical Sciences Informatics (PSI)</b> — تحقيق <b>PSI-69 · FLEX · Version 5</b>.<br>
+                DOI <a href="https://doi.org/10.60555/mbq8-0451" target="_blank" rel="noopener">10.60555/mbq8-0451</a> ·
+                الترخيص <b>CC0-1.0</b> ·
+                <a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">صفحة التحقيق ↗</a><br>
+                رابط التنزيل المباشر (GEODE) موثّق في <code>data/provenance.csv</code> مع تاريخ الوصول والـsha256.
+              </p>
+            </div>
+            <div class="info-item">
+              <div class="n">2</div>
+              <h3>الملف المستخدم</h3>
+              <p>
+                <code>data/flex_clean.csv</code> — نسخة مُعاد تنسيقها من التصدير الرسمي (cp1252 → UTF-8)،
+                <b>274 صفًا × 16 عمودًا</b>، بلا حذف أي صف.<br>
+                sha256 للملف الخام <code>flex_data.csv</code>:<br>
+                <code>37c88ce8ae9391b7544ff630a45ce87543d04d317cdbfbed104fe7d5c27e1b96</code><br>
+                sha256 للملف المستخدم <code>flex_clean.csv</code>:<br>
+                <code>16f300da016b0d06c6e4a579008b1307799663ec7192cdd1f352d15818d431e2</code><br>
+                تاريخ الوصول: <b>2026-10-14</b>.
+              </p>
+            </div>
+            <div class="info-item">
+              <div class="n">3</div>
+              <h3>فضاء أم أرض؟ — قراءة دقيقة</h3>
+              <p>
+                وصف تحقيق PSI-69 يصفه بـ«تحقيق في الجاذبية الصغرى» على ISS، لكنه ينصّ صراحةً على استخدام
+                <b>«بيانات قائمة في الفضاء واختبارات أرضية واسعة النطاق»</b>. الجدول لا يحوي عمودًا يحدّد أي صف
+                كان على متن المركبة. لذلك <b>لا نصف أي سجل بأنه تجربة فضائية</b> هنا،
+                ولا يمكننا التمييز بين سجل أُجري في الفضاء وأخر أُجري على الأرض من هذا الجدول وحده.
+              </p>
+            </div>
+          </div>
         </div>
-        <div class="info-item">
-          <div class="n">2</div>
-          <h3>الملف المستخدم</h3>
-          <p>
-            <code>data/flex_clean.csv</code> — نسخة مُعاد تنسيقها من التصدير الرسمي (cp1252 → UTF-8)،
-            <b>274 صفًا × 16 عمودًا</b>، بلا حذف أي صف.<br>
-            sha256 للملف الخام <code>flex_data.csv</code>:<br>
-            <code>37c88ce8ae9391b7544ff630a45ce87543d04d317cdbfbed104fe7d5c27e1b96</code><br>
-            sha256 للملف المستخدم <code>flex_clean.csv</code>:<br>
-            <code>16f300da016b0d06c6e4a579008b1307799663ec7192cdd1f352d15818d431e2</code><br>
-            تاريخ الوصول: <b>2026-10-14</b>.
-          </p>
-        </div>
-        <div class="info-item">
-          <div class="n">3</div>
-          <h3>فضاء أم أرض؟ — قراءة دقيقة</h3>
-          <p>
-            وصف تحقيق PSI-69 يصفه بـ«تحقيق في الجاذبية الصغرى» على ISS، لكنه ينصّ صراحةً على استخدام
-            <b>«بيانات قائمة في الفضاء واختبارات أرضية واسعة النطاق»</b>. الجدول لا يحوي عمودًا يحدّد أي صف
-            كان على متن المركبة. لذلك <b>لا نصف أي سجل بأنه تجربة فضائية</b> هنا.
-          </p>
-        </div>
-      </div>
+      </details>
 
-      <h2 style="margin-top:20px">الحقول والوحدات والقيم الناقصة <span class="tag">محسوبة مباشرة من الملف</span></h2>
-      <div class="table-wrap" style="max-height:none">
-        <table class="mtable">
-          <thead>
-            <tr><th>العمود</th><th>المعنى</th><th>الوحدة</th><th class="num">فارغ</th></tr>
-          </thead>
-          <tbody id="method-cols"></tbody>
-        </table>
-      </div>
+      <details class="mgroup">
+        <summary>الحقول والوحدات والقيم الناقصة <span class="tag">محسوبة مباشرة من الملف</span></summary>
+        <div class="mbody">
+          <div class="table-wrap" style="max-height:none">
+            <table class="mtable">
+              <thead>
+                <tr><th>العمود</th><th>المعنى</th><th>الوحدة</th><th class="num">فارغ</th></tr>
+              </thead>
+              <tbody id="method-cols"></tbody>
+            </table>
+          </div>
+        </div>
+      </details>
 
-      <div class="method-grid" style="margin-top:18px">
-        <div>
-          <h2>التنظيف والاستبعادات</h2>
+      <details class="mgroup">
+        <summary>التنظيف والاستبعادات</summary>
+        <div class="mbody">
           <ul class="mlist">
             <li><b>لا يُحذف أي صف:</b> الـ274 سجلًا كلها موجودة في الملف وفي الجدول.</li>
             <li><b>الضغط:</b> <code>pressure_atm = mmHg / 760</code> (تحويل وحدة فقط). اختبار 114 قيمته 0
@@ -620,8 +869,11 @@
                 <b>mm²/s</b> (ثابت معدّل الاحتراق k) — موثّقة في NASA/TP-2015-216046.</li>
           </ul>
         </div>
-        <div>
-          <h2>ما الذي يدخل التقييم وما الذي لا يدخل</h2>
+      </details>
+
+      <details class="mgroup">
+        <summary>ما الذي يدخل التقييم وما الذي لا يدخل</summary>
+        <div class="mbody">
           <ul class="mlist">
             <li><b>المتغيّرات المتوقّعة (targets):</b> <code>burning_rate_mm2_s</code> (انحدار) و
                 <code>test_end</code> (تصنيف).</li>
@@ -643,16 +895,22 @@
                 وimputation بالوسيط يُدرَّب على فold التدريب فقط.</li>
           </ul>
         </div>
-      </div>
+      </details>
 
-      <div class="warnbox">
-        <b>حدود النموذج — يجب ذكرها أمام أي جمهور:</b>
-        النموذج يتعلّم أنماطًا <b>داخل هذه 274 سجلًا وداخل النطاق المُشاهَد فقط</b>
-        (O₂ 0.12–0.34 · ضغط 0.5–3.1 atm · d₀ 1.1–4.67 mm)، ولا يُختبر على أي بيانات خارجية،
-        ولا يمثّل «سلوك الحرائق عمومًا». لا يستخدم أي مفتاح API ولا خادمًا خاصًا: كل شيء يعمل داخل المتصفح
-        ومن ملفات المستودع. الموقع <b>أداة بحث واستكشاف</b> — ليس نظام سلامة معتمدًا، ولا يتنبّأ بحريق
-        داخل مركبة فضائية، ولا يعطي توصيات هندسية.
-      </div>
+      <details class="mgroup">
+        <summary>قيود التحليل — اقرأها قبل أي استخدام</summary>
+        <div class="mbody">
+          <div class="warnbox">
+            <b>حدود النموذج — يجب ذكرها أمام أي جمهور:</b>
+            النموذج يتعلّم أنماطًا <b>داخل هذه 274 سجلًا وداخل النطاق المُشاهَد فقط</b>
+            (O₂ 0.12–0.34 · ضغط 0.5–3.1 atm · d₀ 1.1–4.67 mm)، ولا يُختبر على أي بيانات خارجية،
+            ولا يمثّل «سلوك الحرائق عمومًا». لا يستخدم أي مفتاح API ولا خادمًا خاصًا: كل شيء يعمل داخل المتصفح
+            ومن ملفات المستودع. الموقع <b>أداة بحث واستكشاف</b> — ليس نظام سلامة معتمدًا، ولا يتنبّأ بحريق
+            داخل مركبة فضائية، ولا يعطي توصيات هندسية. كما أن الجدول لا يميّز أي سجل أُجري في الفضاء
+            وأي سجل أُجري على الأرض.
+          </div>
+        </div>
+      </details>
 
       <h2 style="margin-top:20px">الاستشهاد</h2>
       <p class="cite">
@@ -669,17 +927,23 @@
       </p>
     </section>
 
+    </div>
   </div>
 </main>
 
-<!-- ================================ FOOTER ================================ -->
 <footer class="site">
-  <div class="wrap row">
-    <span>Data: <b>NASA PSI-69 · FLEX (Flame Extinguishment Experiment)</b></span>
-    <span>DOI: <b>10.60555/mbq8-0451</b></span>
-    <span>License: <b>CC0-1.0</b></span>
-    <span><a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">Official dataset page ↗</a></span>
-    <span>Research tool — <b>not a spacecraft fire-safety system</b></span>
+  <div class="wrap">
+    <div class="row">
+      <span>البيانات: <b>بيانات تجارب NASA FLEX</b> — PSI-69 · Flame Extinguishment Experiment · Version 5</span>
+      <span>DOI: <b>10.60555/mbq8-0451</b></span>
+      <span>الترخيص: <b>CC0-1.0</b></span>
+      <span><a href="https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" target="_blank" rel="noopener">صفحة المصدر الرسمية ↗</a></span>
+    </div>
+    <p class="fine">
+      مشروع تعليمي/استكشافي مستقل، غير تابع لـNASA ولا يشير إلى أي اعتماد أو موافقة رسمية.
+      كل الأرقام تُحسب داخل المتصفح من ملفات المستودع. أداة بحث لاستكشاف نتائج التجارب،
+      ولا تستطيع التنبؤ بحريق داخل مركبة فضائية.
+    </p>
   </div>
 </footer>
 
@@ -721,9 +985,9 @@ const COL_META = {
   quality_flag:       {u:"—",   m:"علامة جودة مشتقّة: <code>ok</code> 196، والباقي يذكر القيم الناقصة في الصف."}
 };
 
-const FUEL_COLOR = { Methanol:"#35d0ff", Heptane:"#ff8a3d" };
-const DIL_COLOR  = { N2:"#4c8dff", CO2:"#35d0ff", He:"#3ddc97" };
-const PALETTE    = ["#4c8dff","#35d0ff","#3ddc97","#ffb454","#ff8a3d"];
+const FUEL_COLOR = { Methanol:"#2563a8", Heptane:"#b45309" };
+const DIL_COLOR  = { N2:"#2563a8", CO2:"#0f766e", He:"#8a7f6a" };
+const PALETTE    = ["#2563a8","#0f766e","#bf4a0f","#a16207","#6b7280"];
 const colorA = (hex, a) => {                       // hex -> rgba(.., a)
   const n = parseInt(hex.slice(1),16);
   return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
@@ -733,9 +997,10 @@ let DATA = [];                                     // all 274 rows
 const charts = {};                                 // chart instances
 
 // global defaults for the dark theme
-Chart.defaults.color = "#8ba0b6";
-Chart.defaults.borderColor = "#1e2a3a";
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+Chart.defaults.color = "#5f6470";
+Chart.defaults.borderColor = "#e2ddd3";
+Chart.defaults.font.family = "'IBM Plex Mono','IBM Plex Sans Arabic',ui-monospace,sans-serif";
+Chart.defaults.font.size = 11;
 
 // ---- filter state (dual ranges default to full data span) ----
 const state = { fuel:"All", end:"All", dil:"All", o2lo:0.10, o2hi:0.35, plo:0.5, phi:3.1,
@@ -767,9 +1032,9 @@ Papa.parse("data/flex_clean.csv", {
   error: (err) => {
     const s = document.getElementById("status");
     s.className = "err";
-    s.innerHTML = "Failed to load <code>data/flex_clean.csv</code>.<br>" +
-      "شغّل السيرفر: <code>python -m http.server 8000</code> ثم افتح " +
-      "<code>http://localhost:8000/</code><br><br>" + err;
+    s.innerHTML = "لم نتمكّن من تحميل <code>data/flex_clean.csv</code>.<br>" +
+      "شغّل سيرفرًا محليًا: <code>python -m http.server 8000</code> ثم افتح " +
+      "<code>http://localhost:8000/</code>. التفاصيل: " + err;
   }
 });
 
@@ -781,6 +1046,7 @@ function boot(){
   buildMethodTable();
   wireControls();
   buildQAChips();
+  wireTabs();
   loadML();
   render();
 }
@@ -871,6 +1137,7 @@ function render(){
   const rows = filtered();
   $("count").textContent = rows.length;
   renderKPIs(rows);
+  renderSummary(rows);
   renderD2(rows);
   renderK(rows);
   renderScatter(rows);
@@ -912,7 +1179,7 @@ function renderD2(rows){
                             && r.extinction_diameter_mm != null && r.extinction_diameter_mm > 0);
   const datasets = pts.map(r => {
     const d0sq = r.initial_diameter_mm ** 2;
-    const col = FUEL_COLOR[r.fuel] || "#4c8dff";
+    const col = FUEL_COLOR[r.fuel] || "#2563a8";
     return {
       label: r.flex_id,
       data: [{ x:0, y:+d0sq.toFixed(3) }, { x:r.burn_time_s, y:+(r.extinction_diameter_mm**2).toFixed(3) }],
@@ -956,8 +1223,8 @@ function renderK(rows){
   });
   const datasets = Object.keys(byFuel).filter(f => byFuel[f].length).map(f => ({
     label: f, data: byFuel[f],
-    backgroundColor: colorA(FUEL_COLOR[f] || "#4c8dff", .75),
-    borderColor: colorA(FUEL_COLOR[f] || "#4c8dff", 1),
+    backgroundColor: colorA(FUEL_COLOR[f] || "#2563a8", .75),
+    borderColor: colorA(FUEL_COLOR[f] || "#2563a8", 1),
     pointRadius: 4, pointHoverRadius: 6
   }));
 
@@ -990,8 +1257,8 @@ function renderScatter(rows){
   });
   const datasets = Object.keys(byFuel).filter(f => byFuel[f].length).map(f => ({
     label: f, data: byFuel[f],
-    backgroundColor: colorA(FUEL_COLOR[f] || "#4c8dff", 0.75),
-    borderColor: colorA(FUEL_COLOR[f] || "#4c8dff", 1),
+    backgroundColor: colorA(FUEL_COLOR[f] || "#2563a8", 0.75),
+    borderColor: colorA(FUEL_COLOR[f] || "#2563a8", 1),
     pointRadius: 4, pointHoverRadius: 6
   }));
 
@@ -1286,14 +1553,14 @@ function insightHTML(o){
 let lastQuestion = null;
 
 const QA_LIST = [
-  { id:"median-k", label:"ما وسيط k في الاختيارات الحالية؟",
+  { id:"median-k", featured:true, label:"ما وسيط k في الاختيارات الحالية؟",
     keys:["وسيط","median","k ","k؟","k."],
     run:(rows)=>{
       const ks = kValues(rows);
       if (ks.length < 3) return {a:`البيانات لا تكفي: ${ks.length} قياسات k فقط داخل هذا التحديد (الحد الأدنى 3).`, ok:false};
       return {a:`وسيط k = <b>${fmt(median(ks),3)} mm²/s</b> · الربيع الأول–الثالث <b>${fmt(quant(ks,.25),3)} – ${fmt(quant(ks,.75),3)}</b> · المدى ${fmt(Math.min(...ks),3)} – ${fmt(Math.max(...ks),3)}.`, ok:true};
     }},
-  { id:"fuel-k", label:"أيهما أكبر k: ميثانول أم هيبتان؟",
+  { id:"fuel-k", featured:true, label:"أيهما أكبر k: ميثانول أم هيبتان؟",
     keys:["ميثانول","هيبتان","methanol","heptane","fuel","وقود"],
     run:(rows)=>{
       const m = kValues(rows.filter(r=>r.fuel==="Methanol")), h = kValues(rows.filter(r=>r.fuel==="Heptane"));
@@ -1304,7 +1571,7 @@ const QA_LIST = [
       return {a:`وسيط k لـ <b>Methanol = ${fmt(mm,3)}</b> mm²/s (n=${m.length}) ولـ <b>Heptane = ${fmt(hh,3)}</b> mm²/s (n=${h.length}) — ` +
                 `<b>${who}</b> أعلى بنسبة ${pct(Math.abs(mm-hh)/Math.min(mm,hh),0)} نسبيًا داخل هذا التحديد.`, ok:true};
     }},
-  { id:"ext-share", label:"ما نسبة اختبارات الانطفاء (Extinction)؟",
+  { id:"ext-share", featured:true, label:"ما نسبة اختبارات الانطفاء (Extinction)؟",
     keys:["انطفاء","extinction","نسبة","enf"],
     run:(rows)=>{
       if (!rows.length) return {a:"لا توجد سجلات مطابقة للفلاتر.", ok:false};
@@ -1314,7 +1581,7 @@ const QA_LIST = [
       return {a:`<b>${pct(e/rows.length,1)}</b> من التحديد الحالي نوعها Extinction (${e} من ${rows.length}). ` +
                 `Disruption ${d} · Completion ${c}.`, ok:true};
     }},
-  { id:"o2-dext", label:"ما العلاقة بين الأكسجين وقطر الانطفاء؟",
+  { id:"o2-dext", featured:true, label:"ما العلاقة بين الأكسجين وقطر الانطفاء؟",
     keys:["أكسجين","اكسجين","o2","o₂","قطر الانطفاء","extinction diameter"],
     run:(rows)=>{
       const rs = rows.filter(r=>r.extinction_diameter_mm>0 && r.x_o2!=null);
@@ -1374,7 +1641,12 @@ const QA_LIST = [
 ];
 
 function buildQAChips(){
-  $("qa-chips").innerHTML = QA_LIST.map(q => `<button class="qa-chip" data-id="${q.id}">${q.label}</button>`).join("");
+  const feat = QA_LIST.filter(q => q.featured).map(q =>
+    `<button class="qa-chip feat" data-id="${q.id}">${q.label}</button>`).join("");
+  const rest = QA_LIST.filter(q => !q.featured).map(q =>
+    `<button class="qa-chip" data-id="${q.id}">${q.label}</button>`).join("");
+  $("qa-chips").innerHTML = `<div class="qa-featured">${feat}</div>` +
+    (rest ? `<div class="qa-more">${rest}</div>` : "");
   $("qa-chips").addEventListener("click", e => {
     const b = e.target.closest(".qa-chip");
     if (!b) return;
@@ -1567,9 +1839,9 @@ function renderML(reg, cls, fi, live){
   $("ml-note").innerHTML = `
     <b>ما الذي يقيسه هذا النموذج فعلًا:</b> يتعلّم العلاقات بين شروط الاختبار المعروفة مسبقًا
     (الأكسجين، الضغط، الغاز المخفّف، القطر الابتدائي، الوقود) والنتيجة داخل <b>هذه السجلات وحدها</b> —
-    لا يتعلّل «سلوك الحرائق عمومًا».<br>
+    لا يتعلّم «سلوك الحرائق عمومًا».<br>
     <b>منع التسريب:</b> لا يُستخدم <code>test_id</code> أو التاريخ أو <code>flex_id</code> أو
-    <code>burn_time_s</code> أو <code>extinction_diameter_mm</code> كم_inputs؛ والتقييم بمجموعات الحملات
+    <code>burn_time_s</code> أو <code>extinction_diameter_mm</code> كمدخلات؛ والتقييم بمجموعات الحملات
     (لا تقسيم عشوائي على مستوى الصف). الخط الأساس مذكور في كل جدول.<br>
     <b>تحذير صريح:</b> فئة <b>Completion</b> ضعيفة (27 سجلًا فقط) وتُخطئ كثيرًا مع Disruption — انظر جدول
     «Per-class recall». التوقّعات صالحة <b>داخل النطاق المُشاهَد فقط</b> ولا تُختبر على بيانات خارجية.
@@ -1590,6 +1862,63 @@ function buildMethodTable(){
       <td class="num">${empty}</td>
     </tr>`;
   }).join("");
+}
+
+/* --------------------------- TABS / SUMMARY CARDS ------------------------ */
+function wireTabs(){
+  const tabs  = Array.from(document.querySelectorAll(".tab[data-chart]"));
+  const panes = document.querySelectorAll(".chart-pane[data-pane]");
+
+  // resize only the chart that just became visible (the d² pane alone holds
+  // ~250 series, so resizing every chart on each switch is needlessly slow)
+  const resizeChart = (key) => requestAnimationFrame(() => {
+    if (charts[key]) { try { charts[key].resize(); } catch(e){} }
+  });
+  const resizeAll = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    Object.values(charts).forEach(c => { try { c.resize(); } catch(e){} });
+  }));
+
+  const activate = (tab, focus) => {
+    const key = tab.dataset.chart;
+    tabs.forEach(t => {
+      const on = t === tab;
+      t.classList.toggle("on", on);
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+    });
+    panes.forEach(p => p.classList.toggle("on", p.dataset.pane === key));
+    if (focus) tab.focus();
+    resizeChart(key);
+  };
+
+  tabs.forEach((tab, i) => {
+    tab.addEventListener("click", () => activate(tab, false));
+    tab.addEventListener("keydown", e => {
+      const rtl = document.documentElement.dir === "rtl";
+      const next = rtl ? "ArrowLeft" : "ArrowRight";
+      const prev = rtl ? "ArrowRight" : "ArrowLeft";
+      let j = null;
+      if (e.key === next) j = (i + 1) % tabs.length;
+      else if (e.key === prev) j = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = tabs.length - 1;
+      if (j != null) { e.preventDefault(); activate(tabs[j], true); }
+    });
+    tab.tabIndex = tab.classList.contains("on") ? 0 : -1;
+  });
+
+  window.addEventListener("resize", resizeAll);
+}
+
+function renderSummary(rows){
+  const fuels = ["Methanol","Heptane"]
+    .map(f => `${f} <b>${DATA.filter(r => r.fuel === f).length}</b>`).join(" · ");
+  const ks = kValues(rows);
+  $("sum-experiments").innerHTML = `<b>${DATA.length}</b> <small>سجلًا</small>`;
+  $("sum-fuels").innerHTML = fuels;
+  $("sum-median-k").innerHTML = ks.length
+    ? `${fmt(median(ks),3)} <small>mm²/s</small>`
+    : "—";
 }
 
 /* --------------------------------- done ---------------------------------- */

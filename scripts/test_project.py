@@ -261,7 +261,10 @@ def test_site():
           "burn_time_s" in html and "extinction_diameter_mm" in html)
     check("limits ranges documented", "0.12–0.34" in html and "0.5–3.1" in html)
     check("missing-value counts documented", "16" in html and "77" in html)
-    check("intro / 30-second section", "in 30 seconds" in html)
+    check("Arabic hero intro", "اكتشف كيف تحترق قطرات الوقود في الفضاء" in html)
+    check("hero CTAs", "استكشف البيانات" in html and "اسأل البيانات" in html)
+    check("chart tabs present", "data-chart=" in html and "chart-pane" in html)
+    check("collapsible methodology", "<details" in html)
     check("QA assistant is deterministic (no LLM call)",
           "ليس نموذجًا لغويًا" in html)
     check("no per-row space-experiment claim in code",
